@@ -1,0 +1,13 @@
+[package]
+name = "hledger-clone"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.81.0"
+
+[dependencies]
+chrono = { version = "0.4.42", features = ["serde"] }
+nom = "8.0.0"
+serde = { version = "1.0.228", features = ["derive"] }
+serde_json = "1.0.145"
+serde_yaml = "0.9.34"
+thiserror = "2.0.17"

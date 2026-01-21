@@ -1,51 +1,7 @@
-#[derive(serde::Deserialize, Debug, PartialEq)]
-#[serde(deny_unknown_fields)]
-pub struct Posting {
-    account: String,
-    commodity: String,
-    amount: i64,
-}
-
-#[derive(serde::Deserialize, Debug, PartialEq)]
-#[serde(deny_unknown_fields)]
-pub struct Transaction {
-    timestamp: chrono::DateTime<chrono::FixedOffset>,
-    postings: Vec<Posting>,
-}
-
-#[derive(serde::Deserialize, Debug, PartialEq)]
-#[serde(deny_unknown_fields)]
-pub struct Object {
-    transactions: Vec<Transaction>,
-}
-
-fn compile_journal(path: &str) -> Object {
-    Object {
-        transactions: vec![Transaction {
-            timestamp: chrono::DateTime::parse_from_rfc3339("2026-01-01T00:00:00.000Z").unwrap(),
-            postings: vec![
-                Posting {
-                    account: "assets/cce/cash".to_string(),
-                    commodity: "JPY".to_string(),
-                    amount: -1000,
-                },
-                Posting {
-                    account: "expense".to_string(),
-                    commodity: "JPY".to_string(),
-                    amount: 1000,
-                },
-            ],
-        }],
-    }
-}
-
-fn read_object(path: &str) -> Object {
-    let file = std::fs::File::open(path).expect("Could not open file.");
-    serde_json::from_reader(file).expect("Could not read file")
-}
-
-#[test]
-fn test_single() {
-    let result = compile_journal("cases/001-example.input.rj");
-    assert_eq!(result, read_object("tests/cases/001-example.output.json"));
+#[rstest::rstest]
+#[case::example("001-example")]
+fn test_successful_compilation(#[case] case: &str) {
+    let result = hledger_clone::compile_journal(&format!("cases/{case}.input.rj"));
+    let expected = hledger_clone::read_object(&format!("tests/cases/{case}.output.json"));
+    assert_eq!(result, expected);
 }

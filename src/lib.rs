@@ -1,25 +1,10 @@
-#[derive(serde::Deserialize, Debug, PartialEq)]
-#[serde(deny_unknown_fields)]
-pub struct Posting {
-    account: String,
-    commodity: String,
-    amount: i64,
-}
+mod input;
+mod output;
 
-#[derive(serde::Deserialize, Debug, PartialEq)]
-#[serde(deny_unknown_fields)]
-pub struct Transaction {
-    timestamp: chrono::DateTime<chrono::FixedOffset>,
-    postings: Vec<Posting>,
-}
+pub use output::{read_object, Object};
 
-#[derive(serde::Deserialize, Debug, PartialEq)]
-#[serde(deny_unknown_fields)]
-pub struct Object {
-    transactions: Vec<Transaction>,
-}
-
-pub fn compile_journal(path: &str) -> Object {
+fn run(_: input::JournalAST) -> Object {
+    use output::{Object, Posting, Transaction};
     Object {
         transactions: vec![Transaction {
             timestamp: chrono::DateTime::parse_from_rfc3339("2026-01-01T00:00:00.000Z").unwrap(),
@@ -39,7 +24,16 @@ pub fn compile_journal(path: &str) -> Object {
     }
 }
 
-pub fn read_object(path: &str) -> Object {
-    let file = std::fs::File::open(path).expect("Could not open file.");
-    serde_json::from_reader(file).expect("Could not read file")
+pub fn compile_journal(path: &str) -> Object {
+    let content = std::fs::read_to_string(path).unwrap();
+    let (_, ast) = input::parse_journal(&content).unwrap_or_else(|e| {
+        let errstr = match e {
+            nom::Err::Error(e1) => nom_language::error::convert_error(content.as_str(), e1),
+            nom::Err::Incomplete(e1) => panic!("Incomplete. {e1:#?}"),
+            nom::Err::Failure(e1) => nom_language::error::convert_error(content.as_str(), e1),
+        };
+        panic!("Could not parse\n{errstr}");
+    });
+
+    run(ast)
 }

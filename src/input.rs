@@ -1,7 +1,7 @@
 #![allow(dead_code)]
 #![allow(unused_variables)]
-
 use nom::error::ParseError;
+use nom::Parser;
 
 #[derive(serde::Deserialize, Debug, PartialEq)]
 #[serde(deny_unknown_fields)]
@@ -120,13 +120,22 @@ fn parse_end_of_statement(input: &str) -> MyResult<'_, ()> {
 }
 
 fn parse_next_statement(input: &str) -> MyResult<'_, Option<Statement>> {
-    Ok(("", None))
-    // use nom::Parser;
-    // let (input, _) = parse_eols(input)?;
+    let (input, eof) = parse_eols(input)?;
+    if input == "" {
+        return Ok((input, None));
+    }
+
+    Ok((
+        "",
+        Some(Statement::TransactionStatement(Transaction {
+            timestamp: chrono::DateTime::parse_from_rfc3339("2026-01-01 00:00:00.000Z").unwrap(),
+            postings: vec![],
+        })),
+    ))
     // let (input, statement) = nom::combinator::opt(parse_statement).parse(input)?;
     // let (input, _) = parse_end_of_statement(input)?;
 
-    // todo!()
+    // Ok((input, statement))
 }
 
 pub fn parse_journal<'a>(input: &'a str) -> MyResult<'a, JournalAST> {
@@ -151,6 +160,7 @@ mod tests;
 
 #[cfg(test)]
 mod test {
+
     use super::*;
 
     #[test]
@@ -202,7 +212,23 @@ mod test {
 
     #[rstest::rstest]
     #[case::empty_string("001-empty-string", tests::test_001_empty_string())]
+    // #[case::single_transaction("002-single-transaction", tests::test_002_single_transaction())]
     fn test_parse_journal(#[case] s: &str, #[case] result: JournalAST) {
         assert_journal_case_equals(s, result);
+    }
+
+    #[rstest::rstest]
+    #[case::empty_string("next_statement_001_empty_string", false)]
+    #[case::whitespace_only("next_statement_002_whitespace_only", false)]
+    #[case::whitespace_statement("next_statement_003_whitespace_statement", true)]
+    #[case::whitespace_statement_whitespace(
+        "next_statement_004_whitespace_statement_whitespace",
+        true
+    )]
+    fn test_parse_next_statement(#[case] s: &str, #[case] result: bool) {
+        let input = read_test_case(&format!("src/input/tests/{s}.input"));
+        let (rest, stmt) = parse_next_statement(&input).expect("Could not parse.");
+        assert_eq!(stmt.is_some(), result);
+        assert_eq!(rest, "");
     }
 }

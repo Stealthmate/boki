@@ -4,9 +4,8 @@
 use nom::error::ParseError;
 use nom::Parser;
 
-type TransactionTimestamp = chrono::DateTime<chrono::FixedOffset>;
-
 mod common;
+mod timestamp;
 
 use common::{InputParser, ParserResult};
 
@@ -20,7 +19,7 @@ pub struct Posting {
 
 #[derive(Debug, PartialEq)]
 pub struct TransactionHeader {
-    timestamp: TransactionTimestamp,
+    timestamp: timestamp::Timestamp,
 }
 
 #[derive(Debug, PartialEq)]
@@ -80,66 +79,8 @@ fn parse_posting(input: &str) -> ParserResult<'_, Posting> {
     todo!()
 }
 
-struct TransactionTimestampParser;
-
-impl TransactionTimestampParser {
-    fn default_offset() -> chrono::FixedOffset {
-        chrono::FixedOffset::east_opt(0).unwrap()
-    }
-
-    fn parse_datetime(input: &str) -> ParserResult<'_, TransactionTimestamp> {
-        let dt = match chrono::DateTime::parse_from_str(input, "%Y-%m-%d %H:%M:%S%.3f %z") {
-            Ok(x) => x,
-            Err(_) => {
-                return Err(nom::Err::Error(nom::error::make_error(
-                    input,
-                    nom::error::ErrorKind::IsNot,
-                )))
-            }
-        };
-
-        Ok((input, dt))
-    }
-
-    fn parse_date(input: &str) -> ParserResult<'_, chrono::NaiveDate> {
-        let (input, datestr) = nom::bytes::complete::take(10usize).parse(input)?;
-
-        let date = match chrono::NaiveDate::parse_from_str(datestr, "%Y-%m-%d") {
-            Ok(x) => x,
-            Err(_) => {
-                return Err(nom::Err::Error(nom::error::make_error(
-                    datestr,
-                    nom::error::ErrorKind::IsNot,
-                )))
-            }
-        };
-
-        Ok((input, date))
-    }
-}
-
-impl InputParser<TransactionTimestamp> for TransactionTimestampParser {
-    fn parse(input: &str) -> ParserResult<'_, TransactionTimestamp> {
-        let (input, dt) = match Self::parse_datetime(input) {
-            Ok(x) => x,
-            Err(_) => {
-                let (input, date) = Self::parse_date(input)?;
-                let ndt = chrono::NaiveDateTime::new(
-                    date,
-                    chrono::NaiveTime::from_hms_opt(0, 0, 0).unwrap(),
-                );
-                let dt = chrono::DateTime::from_naive_utc_and_offset(ndt, Self::default_offset());
-
-                (input, dt)
-            }
-        };
-
-        Ok((input, dt))
-    }
-}
-
-fn parse_timestamp(input: &str) -> ParserResult<'_, TransactionTimestamp> {
-    TransactionTimestampParser::parse(input)
+fn parse_timestamp(input: &str) -> ParserResult<'_, timestamp::Timestamp> {
+    timestamp::TimestampParser::parse(input)
 }
 
 fn parse_transaction_header(input: &str) -> ParserResult<'_, TransactionHeader> {
@@ -311,21 +252,5 @@ mod test {
             Statement::TransactionStatement(_) => (),
             _ => panic!("Not a transaction."),
         }
-    }
-
-    #[rstest::rstest]
-    #[case::date("2026-01-01", "2026-01-01 00:00:00.000Z")]
-    #[case::timestamp_no_timezone("2026-01-01 00:00:00.000", "2026-01-01 00:00:00.000Z")]
-    #[case::timestamp_with_timezone("2026-01-01 00:00:00.000Z", "2026-01-01 00:00:00.000Z")]
-    fn test_parse_transaction_header(#[case] input: &str, #[case] timestamp: &str) {
-        assert_eq!(
-            parse_transaction_header(&format!("{input}\n")),
-            Ok((
-                "",
-                TransactionHeader {
-                    timestamp: chrono::DateTime::parse_from_rfc3339(timestamp).unwrap()
-                }
-            ))
-        )
     }
 }

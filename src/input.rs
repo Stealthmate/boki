@@ -84,10 +84,8 @@ fn parse_timestamp(input: &str) -> ParserResult<'_, timestamp::Timestamp> {
 }
 
 fn parse_transaction_header(input: &str) -> ParserResult<'_, TransactionHeader> {
-    let (input, line) = nom::bytes::complete::take_until("\n").parse(input)?;
-    let (line, timestamp) = parse_timestamp(line)?;
-
-    let (input, _) = nom::bytes::complete::take(1usize).parse(input)?;
+    let (input, timestamp) = parse_timestamp(input)?;
+    let (input, _) = eol(input)?;
 
     Ok((input, TransactionHeader { timestamp }))
 }

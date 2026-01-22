@@ -119,18 +119,35 @@ fn parse_end_of_statement(input: &str) -> MyResult<'_, ()> {
     todo!()
 }
 
-fn parse_next_statement(input: &str) -> MyResult<'_, Statement> {
-    use nom::Parser;
-    let (input, _) = parse_eols(input)?;
-    let (input, statement) = nom::combinator::opt(parse_statement).parse(input)?;
-    let (input, _) = parse_end_of_statement(input)?;
+fn parse_next_statement(input: &str) -> MyResult<'_, Option<Statement>> {
+    Ok(("", None))
+    // use nom::Parser;
+    // let (input, _) = parse_eols(input)?;
+    // let (input, statement) = nom::combinator::opt(parse_statement).parse(input)?;
+    // let (input, _) = parse_end_of_statement(input)?;
 
-    todo!()
+    // todo!()
 }
 
 pub fn parse_journal<'a>(input: &'a str) -> MyResult<'a, JournalAST> {
-    Ok(("", JournalAST(vec![])))
+    let mut statements = vec![];
+
+    let mut i = input;
+
+    loop {
+        let (next_i, maybe_stmt) = parse_next_statement(i)?;
+        i = next_i;
+
+        let Some(stmt) = maybe_stmt else {
+            break;
+        };
+        statements.push(stmt);
+    }
+
+    Ok(("", JournalAST(statements)))
 }
+
+mod tests;
 
 #[cfg(test)]
 mod test {
@@ -172,8 +189,20 @@ mod test {
         assert!(super::parse_eols("\n    \n").is_ok());
     }
 
-    #[test]
-    fn parse_journal_parses_empty_string() {
-        assert_eq!(parse_journal(""), Ok(("", JournalAST(vec![]))))
+    fn read_test_case(s: &str) -> String {
+        std::fs::read_to_string(s).unwrap()
+    }
+
+    fn assert_journal_case_equals(s: &str, journal: JournalAST) -> () {
+        assert_eq!(
+            parse_journal(&read_test_case(&format!("src/input/tests/{s}.input.rj"))),
+            Ok(("", journal))
+        );
+    }
+
+    #[rstest::rstest]
+    #[case::empty_string("001-empty-string", tests::test_001_empty_string())]
+    fn test_parse_journal(#[case] s: &str, #[case] result: JournalAST) {
+        assert_journal_case_equals(s, result);
     }
 }

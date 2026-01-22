@@ -3,9 +3,12 @@
 
 use nom::error::ParseError;
 use nom::Parser;
-use nom_language::error::VerboseError;
 
 type TransactionTimestamp = chrono::DateTime<chrono::FixedOffset>;
+
+mod common;
+
+use common::{InputParser, ParserResult};
 
 #[derive(serde::Deserialize, Debug, PartialEq)]
 #[serde(deny_unknown_fields)]
@@ -39,15 +42,13 @@ enum Statement {
 #[derive(Debug, PartialEq)]
 pub struct JournalAST(Vec<Statement>);
 
-type MyResult<'a, T> = nom::IResult<&'a str, T, nom_language::error::VerboseError<&'a str>>;
-
-fn parse_whitespace(input: &str) -> MyResult<'_, &str> {
+fn parse_whitespace(input: &str) -> ParserResult<'_, &str> {
     use nom::Parser;
     let (input, _) = nom::multi::many0(nom::bytes::complete::tag(" ")).parse(input)?;
     Ok((input, ""))
 }
 
-fn eol(input: &str) -> MyResult<'_, ()> {
+fn eol(input: &str) -> ParserResult<'_, ()> {
     use nom::Parser;
 
     if input.is_empty() {
@@ -68,23 +69,15 @@ fn eol(input: &str) -> MyResult<'_, ()> {
     Ok((input, ()))
 }
 
-fn parse_eols(input: &str) -> MyResult<'_, ()> {
+fn parse_eols(input: &str) -> ParserResult<'_, ()> {
     use nom::Parser;
     let (next_input, _) = nom::multi::many0(eol).parse(input)?;
 
     Ok((next_input, ()))
 }
 
-fn parse_posting(input: &str) -> MyResult<'_, Posting> {
+fn parse_posting(input: &str) -> ParserResult<'_, Posting> {
     todo!()
-}
-
-trait CustomParser<T> {
-    fn parse(input: &str) -> MyResult<'_, T>;
-}
-
-fn error_unexpected<'a>(input: &'a str, expected: &'a str) -> nom::Err<VerboseError<&'a str>> {
-    nom::Err::Error(nom::error::make_error(input, nom::error::ErrorKind::IsNot))
 }
 
 struct TransactionTimestampParser;
@@ -94,7 +87,7 @@ impl TransactionTimestampParser {
         chrono::FixedOffset::east_opt(0).unwrap()
     }
 
-    fn parse_datetime(input: &str) -> MyResult<'_, TransactionTimestamp> {
+    fn parse_datetime(input: &str) -> ParserResult<'_, TransactionTimestamp> {
         let dt = match chrono::DateTime::parse_from_str(input, "%Y-%m-%d %H:%M:%S%.3f %z") {
             Ok(x) => x,
             Err(_) => {
@@ -108,7 +101,7 @@ impl TransactionTimestampParser {
         Ok((input, dt))
     }
 
-    fn parse_date(input: &str) -> MyResult<'_, chrono::NaiveDate> {
+    fn parse_date(input: &str) -> ParserResult<'_, chrono::NaiveDate> {
         let (input, datestr) = nom::bytes::complete::take(10usize).parse(input)?;
 
         let date = match chrono::NaiveDate::parse_from_str(datestr, "%Y-%m-%d") {
@@ -125,8 +118,8 @@ impl TransactionTimestampParser {
     }
 }
 
-impl CustomParser<TransactionTimestamp> for TransactionTimestampParser {
-    fn parse(input: &str) -> MyResult<'_, TransactionTimestamp> {
+impl InputParser<TransactionTimestamp> for TransactionTimestampParser {
+    fn parse(input: &str) -> ParserResult<'_, TransactionTimestamp> {
         let (input, dt) = match Self::parse_datetime(input) {
             Ok(x) => x,
             Err(_) => {
@@ -145,11 +138,11 @@ impl CustomParser<TransactionTimestamp> for TransactionTimestampParser {
     }
 }
 
-fn parse_timestamp(input: &str) -> MyResult<'_, TransactionTimestamp> {
+fn parse_timestamp(input: &str) -> ParserResult<'_, TransactionTimestamp> {
     TransactionTimestampParser::parse(input)
 }
 
-fn parse_transaction_header(input: &str) -> MyResult<'_, TransactionHeader> {
+fn parse_transaction_header(input: &str) -> ParserResult<'_, TransactionHeader> {
     let (input, line) = nom::bytes::complete::take_until("\n").parse(input)?;
     let (line, timestamp) = parse_timestamp(line)?;
 
@@ -158,11 +151,11 @@ fn parse_transaction_header(input: &str) -> MyResult<'_, TransactionHeader> {
     Ok((input, TransactionHeader { timestamp }))
 }
 
-fn parse_next_posting(input: &str) -> MyResult<'_, Option<Posting>> {
+fn parse_next_posting(input: &str) -> ParserResult<'_, Option<Posting>> {
     Ok((input, None))
 }
 
-fn parse_statement_transaction(input: &str) -> MyResult<'_, Statement> {
+fn parse_statement_transaction(input: &str) -> ParserResult<'_, Statement> {
     let (input, header) = parse_transaction_header(input)?;
 
     let mut postings = vec![];
@@ -182,16 +175,16 @@ fn parse_statement_transaction(input: &str) -> MyResult<'_, Statement> {
     Ok(("", stmt))
 }
 
-fn parse_statement(input: &str) -> MyResult<'_, Statement> {
+fn parse_statement(input: &str) -> ParserResult<'_, Statement> {
     use nom::Parser;
     nom::branch::alt([parse_statement_transaction]).parse(input)
 }
 
-fn parse_end_of_statement(input: &str) -> MyResult<'_, ()> {
+fn parse_end_of_statement(input: &str) -> ParserResult<'_, ()> {
     todo!()
 }
 
-fn parse_next_statement(input: &str) -> MyResult<'_, Option<Statement>> {
+fn parse_next_statement(input: &str) -> ParserResult<'_, Option<Statement>> {
     let (input, eof) = parse_eols(input)?;
     if input.is_empty() {
         return Ok((input, None));
@@ -213,7 +206,7 @@ fn parse_next_statement(input: &str) -> MyResult<'_, Option<Statement>> {
     // Ok((input, statement))
 }
 
-pub fn parse_journal<'a>(input: &'a str) -> MyResult<'a, JournalAST> {
+pub fn parse_journal<'a>(input: &'a str) -> ParserResult<'a, JournalAST> {
     let mut statements = vec![];
 
     let mut i = input;

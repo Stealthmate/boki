@@ -3,6 +3,8 @@
 use nom::error::ParseError;
 use nom::Parser;
 
+type TransactionTimestamp = chrono::DateTime<chrono::FixedOffset>;
+
 #[derive(serde::Deserialize, Debug, PartialEq)]
 #[serde(deny_unknown_fields)]
 pub struct Posting {
@@ -82,37 +84,43 @@ fn parse_posting(input: &str) -> MyResult<'_, Posting> {
     todo!()
 }
 
-fn parse_statement_transaction(input: &str) -> MyResult<'_, Statement> {
-    // let (input, timestamp) = parse_timestamp(input)?;
-    // let (input, _) = eol(input)?;
-    // let (input, postings) = nom::multi::many(2.., parse_posting).parse(input)?;
-
-    let (input, _) = nom::combinator::rest(input)?;
-
+fn parse_statement_header(input: &str) -> MyResult<'_, TransactionTimestamp> {
     Ok((
         input,
-        Statement::TransactionStatement(Transaction {
-            timestamp: chrono::DateTime::parse_from_rfc3339("2026-01-01T00:00:00.000Z").unwrap(),
-            postings: vec![
-                Posting {
-                    account: "assets/cce/cash".to_string(),
-                    commodity: "JPY".to_string(),
-                    amount: -1000,
-                },
-                Posting {
-                    account: "expense".to_string(),
-                    commodity: "JPY".to_string(),
-                    amount: 1000,
-                },
-            ],
-        }),
+        chrono::DateTime::parse_from_rfc3339("2026-01-01 00:00:00.000Z").unwrap(),
     ))
+}
+
+fn parse_next_posting(input: &str) -> MyResult<'_, Option<Posting>> {
+    Ok((input, None))
+}
+
+fn parse_statement_transaction(input: &str) -> MyResult<'_, Statement> {
+    let (input, timestamp) = parse_statement_header(input)?;
+
+    let mut postings = vec![];
+    let mut i = input;
+
+    loop {
+        let (next_i, maybe_posting) = parse_next_posting(i)?;
+        i = next_i;
+
+        let Some(post) = maybe_posting else {
+            break;
+        };
+        postings.push(post);
+    }
+    let stmt = Statement::TransactionStatement(Transaction {
+        timestamp,
+        postings,
+    });
+
+    Ok(("", stmt))
 }
 
 fn parse_statement(input: &str) -> MyResult<'_, Statement> {
     use nom::Parser;
-
-    nom::branch::alt((parse_statement_transaction,)).parse(input)
+    nom::branch::alt([parse_statement_transaction]).parse(input)
 }
 
 fn parse_end_of_statement(input: &str) -> MyResult<'_, ()> {
@@ -230,5 +238,18 @@ mod test {
         let (rest, stmt) = parse_next_statement(&input).expect("Could not parse.");
         assert_eq!(stmt.is_some(), result);
         assert_eq!(rest, "");
+    }
+
+    #[test]
+    fn test_parse_statement_001_transaction() {
+        let (input, result) = parse_statement(&read_test_case(&format!(
+            "src/input/tests/statement_001_transaction.input"
+        )))
+        .expect("Could not parse.");
+
+        match result {
+            Statement::TransactionStatement(_) => (),
+            _ => panic!("Not a transaction."),
+        }
     }
 }

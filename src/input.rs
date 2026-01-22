@@ -1,8 +1,11 @@
 #![allow(dead_code)]
 #![allow(unused_variables)]
 
-use nom::error::ParseError;
 use nom::Parser;
+use nom::{
+    bytes::complete::{take, take_until},
+    error::ParseError,
+};
 
 mod common;
 mod timestamp;
@@ -76,7 +79,17 @@ fn parse_eols(input: &str) -> ParserResult<'_, ()> {
 }
 
 fn parse_posting(input: &str) -> ParserResult<'_, Posting> {
-    todo!()
+    let (input, _) = take_until("\n").parse(input)?;
+    let (input, _) = take(1usize).parse(input)?;
+
+    Ok((
+        input,
+        Posting {
+            account: "".to_string(),
+            commodity: "".to_string(),
+            amount: 0,
+        },
+    ))
 }
 
 fn parse_timestamp(input: &str) -> ParserResult<'_, timestamp::Timestamp> {
@@ -94,7 +107,7 @@ fn parse_next_posting(input: &str) -> ParserResult<'_, Option<Posting>> {
     Ok((input, None))
 }
 
-fn parse_statement_transaction(input: &str) -> ParserResult<'_, Statement> {
+fn parse_transaction(input: &str) -> ParserResult<'_, Transaction> {
     let (input, header) = parse_transaction_header(input)?;
 
     let mut postings = vec![];
@@ -109,14 +122,14 @@ fn parse_statement_transaction(input: &str) -> ParserResult<'_, Statement> {
         };
         postings.push(post);
     }
-    let stmt = Statement::TransactionStatement(Transaction { header, postings });
+    let tx = Transaction { header, postings };
 
-    Ok(("", stmt))
+    Ok(("", tx))
 }
 
 fn parse_statement(input: &str) -> ParserResult<'_, Statement> {
     use nom::Parser;
-    nom::branch::alt([parse_statement_transaction]).parse(input)
+    nom::branch::alt([parse_transaction.map(Statement::TransactionStatement)]).parse(input)
 }
 
 fn parse_end_of_statement(input: &str) -> ParserResult<'_, ()> {
@@ -250,5 +263,18 @@ mod test {
             Statement::TransactionStatement(_) => (),
             _ => panic!("Not a transaction."),
         }
+    }
+
+    // #[test]
+    // fn test_parse_transaction_001_simple() {
+    //     let input = read_test_case(&format!("src/input/tests/transaction_001_simple.input"));
+    //     let (rest, tn) = parse_transaction(&input).expect("Could not parse.");
+    //     assert_eq!(tn.postings.len(), 2);
+    // }
+
+    #[test]
+    fn test_parse_posting_simple() {
+        let input = "  asset/cce/cash   JPY    1000\n";
+        parse_posting(&input).expect("Could not parse.");
     }
 }

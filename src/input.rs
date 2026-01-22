@@ -1,6 +1,7 @@
 #![allow(dead_code)]
 #![allow(unused_variables)]
 
+use nom::bytes::streaming::tag;
 use nom::Parser;
 use nom::{
     bytes::complete::{take, take_until},
@@ -79,6 +80,8 @@ fn parse_eols(input: &str) -> ParserResult<'_, ()> {
 }
 
 fn parse_posting(input: &str) -> ParserResult<'_, Posting> {
+    let (input, _): (&str, Vec<&str>) = nom::multi::many(2.., tag(" ")).parse(input)?;
+
     let (input, _) = take_until("\n").parse(input)?;
     let (input, _) = take(1usize).parse(input)?;
 
@@ -276,5 +279,11 @@ mod test {
     fn test_parse_posting_simple() {
         let input = "  asset/cce/cash   JPY    1000\n";
         parse_posting(&input).expect("Could not parse.");
+    }
+
+    #[test]
+    fn test_parse_posting_fails_if_no_indent() {
+        let input = "asset/cce/cash   JPY    1000\n";
+        assert!(parse_posting(&input).is_err());
     }
 }

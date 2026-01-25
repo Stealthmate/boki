@@ -9,6 +9,7 @@ use nom::{
 };
 
 mod common;
+mod posting;
 mod timestamp;
 
 use common::{InputParser, ParserResult};
@@ -81,16 +82,15 @@ fn parse_eols(input: &str) -> ParserResult<'_, ()> {
 
 fn parse_posting(input: &str) -> ParserResult<'_, Posting> {
     let (input, _): (&str, Vec<&str>) = nom::multi::many(2.., tag(" ")).parse(input)?;
-
     let (input, _) = take_until("\n").parse(input)?;
     let (input, _) = take(1usize).parse(input)?;
 
     Ok((
         input,
         Posting {
-            account: "".to_string(),
-            commodity: "".to_string(),
-            amount: 0,
+            account: "asset/cce/cash".to_string(),
+            commodity: "JPY".to_string(),
+            amount: 1000,
         },
     ))
 }
@@ -276,14 +276,28 @@ mod test {
     // }
 
     #[test]
-    fn test_parse_posting_simple() {
-        let input = "  asset/cce/cash   JPY    1000\n";
-        parse_posting(&input).expect("Could not parse.");
+    fn test_parse_posting_account_currency_amount() {
+        let input = "  asset/cce/cash;JPY;1000\n";
+        let (_, result) = parse_posting(&input).expect("Could not parse.");
+        assert_eq!(
+            result,
+            Posting {
+                account: "asset/cce/cash".to_string(),
+                commodity: "JPY".to_string(),
+                amount: 1000
+            }
+        )
     }
 
     #[test]
     fn test_parse_posting_fails_if_no_indent() {
-        let input = "asset/cce/cash   JPY    1000\n";
+        let input = "asset/cce/cash;JPY;1000\n";
+        assert!(parse_posting(&input).is_err());
+    }
+
+    #[test]
+    fn test_parse_posting_fails_if_no_newline_at_end() {
+        let input = "  asset/cce/cash;JPY;1000";
         assert!(parse_posting(&input).is_err());
     }
 }

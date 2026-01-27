@@ -2,8 +2,8 @@
     
 
 2025-01-01
-    asset/cce/cash   JPY  -1000
-    expense          JPY   1000
+    asset/cce/cash;JPY;-1000
+    expense;JPY;1000
    
   
 

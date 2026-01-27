@@ -4,8 +4,11 @@
 use nom::bytes::streaming::tag;
 use nom::Parser;
 use nom::{
+    branch::alt,
     bytes::complete::{take, take_until},
+    combinator::rest,
     error::ParseError,
+    sequence::terminated,
 };
 
 mod common;
@@ -13,14 +16,6 @@ mod posting;
 mod timestamp;
 
 use common::{InputParser, ParserResult};
-
-#[derive(serde::Deserialize, Debug, PartialEq)]
-#[serde(deny_unknown_fields)]
-pub struct Posting {
-    account: String,
-    commodity: String,
-    amount: i64,
-}
 
 #[derive(Debug, PartialEq)]
 pub struct TransactionHeader {
@@ -30,7 +25,7 @@ pub struct TransactionHeader {
 #[derive(Debug, PartialEq)]
 pub struct Transaction {
     header: TransactionHeader,
-    postings: Vec<Posting>,
+    postings: Vec<posting::Posting>,
 }
 
 #[derive(Debug, PartialEq)]
@@ -80,17 +75,23 @@ fn parse_eols(input: &str) -> ParserResult<'_, ()> {
     Ok((next_input, ()))
 }
 
-fn parse_posting(input: &str) -> ParserResult<'_, Posting> {
+// fn peek_next_line(input: &str) -> ParserResult<'_, String> {
+//     alt((terminated(take_until("\n"), tag("\n")), rest))
+//         .parse(input)
+//         .map(|(i, r)| (i, r.to_string()))
+// }
+
+fn parse_posting(input: &str) -> ParserResult<'_, posting::Posting> {
     let (input, _): (&str, Vec<&str>) = nom::multi::many(2.., tag(" ")).parse(input)?;
     let (input, _) = take_until("\n").parse(input)?;
     let (input, _) = take(1usize).parse(input)?;
 
     Ok((
         input,
-        Posting {
+        posting::Posting {
             account: "asset/cce/cash".to_string(),
-            commodity: "JPY".to_string(),
-            amount: 1000,
+            commodity: Some("JPY".to_string()),
+            amount: Some(1000),
         },
     ))
 }
@@ -106,8 +107,15 @@ fn parse_transaction_header(input: &str) -> ParserResult<'_, TransactionHeader> 
     Ok((input, TransactionHeader { timestamp }))
 }
 
-fn parse_next_posting(input: &str) -> ParserResult<'_, Option<Posting>> {
-    Ok((input, None))
+fn parse_next_posting(input: &str) -> ParserResult<'_, Option<posting::Posting>> {
+    let (input, _) = parse_eols(input)?;
+    if input.is_empty() {
+        return Ok((input, None));
+    }
+    println!("Input:\n{input}");
+
+    let (input, posting) = posting::PostingParser::parse(input)?;
+    Ok((input, Some(posting)))
 }
 
 fn parse_transaction(input: &str) -> ParserResult<'_, Transaction> {
@@ -135,30 +143,14 @@ fn parse_statement(input: &str) -> ParserResult<'_, Statement> {
     nom::branch::alt([parse_transaction.map(Statement::TransactionStatement)]).parse(input)
 }
 
-fn parse_end_of_statement(input: &str) -> ParserResult<'_, ()> {
-    todo!()
-}
-
 fn parse_next_statement(input: &str) -> ParserResult<'_, Option<Statement>> {
     let (input, eof) = parse_eols(input)?;
     if input.is_empty() {
         return Ok((input, None));
     }
 
-    Ok((
-        "",
-        Some(Statement::TransactionStatement(Transaction {
-            header: TransactionHeader {
-                timestamp: chrono::DateTime::parse_from_rfc3339("2026-01-01 00:00:00.000Z")
-                    .unwrap(),
-            },
-            postings: vec![],
-        })),
-    ))
-    // let (input, statement) = nom::combinator::opt(parse_statement).parse(input)?;
-    // let (input, _) = parse_end_of_statement(input)?;
-
-    // Ok((input, statement))
+    let (input, stmt) = parse_statement(input)?;
+    Ok((input, Some(stmt)))
 }
 
 pub fn parse_journal<'a>(input: &'a str) -> ParserResult<'a, JournalAST> {
@@ -274,30 +266,4 @@ mod test {
     //     let (rest, tn) = parse_transaction(&input).expect("Could not parse.");
     //     assert_eq!(tn.postings.len(), 2);
     // }
-
-    #[test]
-    fn test_parse_posting_account_currency_amount() {
-        let input = "  asset/cce/cash;JPY;1000\n";
-        let (_, result) = parse_posting(&input).expect("Could not parse.");
-        assert_eq!(
-            result,
-            Posting {
-                account: "asset/cce/cash".to_string(),
-                commodity: "JPY".to_string(),
-                amount: 1000
-            }
-        )
-    }
-
-    #[test]
-    fn test_parse_posting_fails_if_no_indent() {
-        let input = "asset/cce/cash;JPY;1000\n";
-        assert!(parse_posting(&input).is_err());
-    }
-
-    #[test]
-    fn test_parse_posting_fails_if_no_newline_at_end() {
-        let input = "  asset/cce/cash;JPY;1000";
-        assert!(parse_posting(&input).is_err());
-    }
 }

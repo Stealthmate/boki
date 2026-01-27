@@ -8,9 +8,9 @@ use nom::Parser;
 #[derive(serde::Deserialize, Debug, PartialEq)]
 #[serde(deny_unknown_fields)]
 pub struct Posting {
-    account: String,
-    commodity: Option<String>,
-    amount: Option<i64>,
+    pub account: String,
+    pub commodity: Option<String>,
+    pub amount: Option<i64>,
 }
 
 pub struct PostingParser;

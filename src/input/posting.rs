@@ -112,4 +112,16 @@ mod test {
         let (rest, result) = PostingParser::parse(&input).expect("Could not parse.");
         assert_eq!(rest, "foobar")
     }
+
+    #[test]
+    fn test_posting_parser_rejects_eof() {
+        let input = "";
+        PostingParser::parse(&input).expect_err("Should have failed.");
+    }
+
+    #[test]
+    fn test_posting_parser_rejects_empty_line() {
+        let input = "       \n";
+        PostingParser::parse(&input).expect_err("Should have failed.");
+    }
 }

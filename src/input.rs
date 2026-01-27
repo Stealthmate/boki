@@ -75,12 +75,6 @@ fn parse_eols(input: &str) -> ParserResult<'_, ()> {
     Ok((next_input, ()))
 }
 
-// fn peek_next_line(input: &str) -> ParserResult<'_, String> {
-//     alt((terminated(take_until("\n"), tag("\n")), rest))
-//         .parse(input)
-//         .map(|(i, r)| (i, r.to_string()))
-// }
-
 fn parse_posting(input: &str) -> ParserResult<'_, posting::Posting> {
     let (input, _): (&str, Vec<&str>) = nom::multi::many(2.., tag(" ")).parse(input)?;
     let (input, _) = take_until("\n").parse(input)?;
@@ -107,12 +101,19 @@ fn parse_transaction_header(input: &str) -> ParserResult<'_, TransactionHeader> 
     Ok((input, TransactionHeader { timestamp }))
 }
 
+// TODO: peek lines in transaction parser and use that to decide if more postings coming or end of transaction
+
+fn peek_next_line(input: &str) -> ParserResult<'_, String> {
+    alt((terminated(take_until("\n"), tag("\n")), rest))
+        .parse(input)
+        .map(|(i, r)| (i, r.to_string()))
+}
+
 fn parse_next_posting(input: &str) -> ParserResult<'_, Option<posting::Posting>> {
     let (input, _) = parse_eols(input)?;
     if input.is_empty() {
         return Ok((input, None));
     }
-    println!("Input:\n{input}");
 
     let (input, posting) = posting::PostingParser::parse(input)?;
     Ok((input, Some(posting)))
@@ -125,6 +126,12 @@ fn parse_transaction(input: &str) -> ParserResult<'_, Transaction> {
     let mut i = input;
 
     loop {
+        let (_, next_line) = peek_next_line(i)?;
+        println!("Next line: {next_line}");
+        if !next_line.starts_with("  ") {
+            break;
+        }
+
         let (next_i, maybe_posting) = parse_next_posting(i)?;
         i = next_i;
 
@@ -135,7 +142,7 @@ fn parse_transaction(input: &str) -> ParserResult<'_, Transaction> {
     }
     let tx = Transaction { header, postings };
 
-    Ok(("", tx))
+    Ok((i, tx))
 }
 
 fn parse_statement(input: &str) -> ParserResult<'_, Statement> {
@@ -175,6 +182,7 @@ mod tests;
 
 #[cfg(test)]
 mod test {
+    use indoc::indoc;
 
     use super::*;
 
@@ -258,6 +266,30 @@ mod test {
             Statement::TransactionStatement(_) => (),
             _ => panic!("Not a transaction."),
         }
+    }
+
+    #[test]
+    fn test_parse_transaction_simple() {
+        let input = indoc! {"
+            2025-01-01
+              asset/cce/cash;JPY;-1000
+              expense;JPY;1000
+        "};
+
+        let (_, result) = parse_transaction(input).expect("Could not parse.");
+    }
+
+    #[test]
+    fn test_parse_transaction_stops_on_new_transaction() {
+        let input = indoc! {"
+            2025-01-01
+              asset/cce/cash;JPY;-1000
+              expense;JPY;1000
+            2025-01-02
+        "};
+
+        let (rest, result) = parse_transaction(input).expect("Could not parse.");
+        assert!(rest.starts_with("2025-01-02"), "Rest: {rest}");
     }
 
     // #[test]

@@ -14,144 +14,31 @@ use nom::{
 mod common;
 mod posting;
 mod timestamp;
+mod transaction;
 
 use common::{InputParser, ParserResult};
 
 #[derive(Debug, PartialEq)]
-pub struct TransactionHeader {
-    timestamp: timestamp::Timestamp,
-}
-
-#[derive(Debug, PartialEq)]
-pub struct Transaction {
-    header: TransactionHeader,
-    postings: Vec<posting::Posting>,
-}
-
-#[derive(Debug, PartialEq)]
 pub struct Object {
-    transactions: Vec<Transaction>,
+    transactions: Vec<transaction::Transaction>,
 }
 
 #[derive(Debug, PartialEq)]
 enum Statement {
-    TransactionStatement(Transaction),
+    TransactionStatement(transaction::Transaction),
 }
 
 #[derive(Debug, PartialEq)]
 pub struct JournalAST(Vec<Statement>);
 
-fn parse_whitespace(input: &str) -> ParserResult<'_, &str> {
-    use nom::Parser;
-    let (input, _) = nom::multi::many0(nom::bytes::complete::tag(" ")).parse(input)?;
-    Ok((input, ""))
-}
-
-fn eol(input: &str) -> ParserResult<'_, ()> {
-    use nom::Parser;
-
-    if input.is_empty() {
-        return Err(nom::Err::Error(
-            nom_language::error::VerboseError::from_error_kind(input, nom::error::ErrorKind::Eof),
-        ));
-    }
-
-    let (input, _) = parse_whitespace(input)?;
-    if input.is_empty() {
-        return Err(nom::Err::Error(
-            nom_language::error::VerboseError::from_error_kind(input, nom::error::ErrorKind::Eof),
-        ));
-    }
-
-    let (input, _) = nom::bytes::complete::tag("\n").parse(input)?;
-
-    Ok((input, ()))
-}
-
-fn parse_eols(input: &str) -> ParserResult<'_, ()> {
-    use nom::Parser;
-    let (next_input, _) = nom::multi::many0(eol).parse(input)?;
-
-    Ok((next_input, ()))
-}
-
-fn parse_posting(input: &str) -> ParserResult<'_, posting::Posting> {
-    let (input, _): (&str, Vec<&str>) = nom::multi::many(2.., tag(" ")).parse(input)?;
-    let (input, _) = take_until("\n").parse(input)?;
-    let (input, _) = take(1usize).parse(input)?;
-
-    Ok((
-        input,
-        posting::Posting {
-            account: "asset/cce/cash".to_string(),
-            commodity: Some("JPY".to_string()),
-            amount: Some(1000),
-        },
-    ))
-}
-
-fn parse_timestamp(input: &str) -> ParserResult<'_, timestamp::Timestamp> {
-    timestamp::TimestampParser::parse(input)
-}
-
-fn parse_transaction_header(input: &str) -> ParserResult<'_, TransactionHeader> {
-    let (input, timestamp) = parse_timestamp(input)?;
-    let (input, _) = eol(input)?;
-
-    Ok((input, TransactionHeader { timestamp }))
-}
-
-// TODO: peek lines in transaction parser and use that to decide if more postings coming or end of transaction
-
-fn peek_next_line(input: &str) -> ParserResult<'_, String> {
-    alt((terminated(take_until("\n"), tag("\n")), rest))
-        .parse(input)
-        .map(|(i, r)| (i, r.to_string()))
-}
-
-fn parse_next_posting(input: &str) -> ParserResult<'_, Option<posting::Posting>> {
-    let (input, _) = parse_eols(input)?;
-    if input.is_empty() {
-        return Ok((input, None));
-    }
-
-    let (input, posting) = posting::PostingParser::parse(input)?;
-    Ok((input, Some(posting)))
-}
-
-fn parse_transaction(input: &str) -> ParserResult<'_, Transaction> {
-    let (input, header) = parse_transaction_header(input)?;
-
-    let mut postings = vec![];
-    let mut i = input;
-
-    loop {
-        let (_, next_line) = peek_next_line(i)?;
-        println!("Next line: {next_line}");
-        if !next_line.starts_with("  ") {
-            break;
-        }
-
-        let (next_i, maybe_posting) = parse_next_posting(i)?;
-        i = next_i;
-
-        let Some(post) = maybe_posting else {
-            break;
-        };
-        postings.push(post);
-    }
-    let tx = Transaction { header, postings };
-
-    Ok((i, tx))
-}
-
 fn parse_statement(input: &str) -> ParserResult<'_, Statement> {
     use nom::Parser;
-    nom::branch::alt([parse_transaction.map(Statement::TransactionStatement)]).parse(input)
+    nom::branch::alt([transaction::TransactionParser::parse.map(Statement::TransactionStatement)])
+        .parse(input)
 }
 
 fn parse_next_statement(input: &str) -> ParserResult<'_, Option<Statement>> {
-    let (input, eof) = parse_eols(input)?;
+    let (input, eof) = common::parse_eols(input)?;
     if input.is_empty() {
         return Ok((input, None));
     }
@@ -182,45 +69,8 @@ mod tests;
 
 #[cfg(test)]
 mod test {
-    use indoc::indoc;
 
     use super::*;
-
-    #[test]
-    fn eol_parses_empty_line() {
-        assert_eq!(super::eol("\n"), Ok(("", ())))
-    }
-
-    #[test]
-    fn eol_parses_empty_line_with_spaces() {
-        assert_eq!(super::eol("   \n"), Ok(("", ())))
-    }
-
-    #[test]
-    fn eol_fails_on_empty_string() {
-        assert!(super::eol("").is_err())
-    }
-
-    #[test]
-    fn eol_fails_on_non_empty_line() {
-        assert!(super::eol("  asdasd").is_err());
-        assert!(super::eol("2026-01-01").is_err())
-    }
-
-    #[test]
-    fn parse_eols_parses_empty_string() {
-        assert_eq!(super::parse_eols(""), Ok(("", ())));
-    }
-
-    #[test]
-    fn parse_eols_parses_one_line() {
-        assert_eq!(super::parse_eols("  \n"), Ok(("", ())));
-    }
-
-    #[test]
-    fn parse_eols_parses_two_lines() {
-        assert!(super::parse_eols("\n    \n").is_ok());
-    }
 
     fn read_test_case(s: &str) -> String {
         std::fs::read_to_string(s).unwrap()
@@ -266,30 +116,6 @@ mod test {
             Statement::TransactionStatement(_) => (),
             _ => panic!("Not a transaction."),
         }
-    }
-
-    #[test]
-    fn test_parse_transaction_simple() {
-        let input = indoc! {"
-            2025-01-01
-              asset/cce/cash;JPY;-1000
-              expense;JPY;1000
-        "};
-
-        let (_, result) = parse_transaction(input).expect("Could not parse.");
-    }
-
-    #[test]
-    fn test_parse_transaction_stops_on_new_transaction() {
-        let input = indoc! {"
-            2025-01-01
-              asset/cce/cash;JPY;-1000
-              expense;JPY;1000
-            2025-01-02
-        "};
-
-        let (rest, result) = parse_transaction(input).expect("Could not parse.");
-        assert!(rest.starts_with("2025-01-02"), "Rest: {rest}");
     }
 
     // #[test]

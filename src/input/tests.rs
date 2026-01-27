@@ -1,4 +1,8 @@
-use crate::input::{timestamp::Timestamp, *};
+use crate::input::{
+    timestamp::Timestamp,
+    transaction::{Transaction, TransactionHeader},
+    *,
+};
 
 fn from_timestamp(s: &str) -> Timestamp {
     chrono::DateTime::parse_from_rfc3339(s).expect("Invalid timestamp")

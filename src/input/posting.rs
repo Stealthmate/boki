@@ -27,7 +27,7 @@ impl PostingParser {
         Ok((input, col.to_string()))
     }
 
-    fn empty_str_is_none<'a>((i, r): (&str, String)) -> (&str, Option<String>) {
+    fn empty_str_is_none((i, r): (&str, String)) -> (&str, Option<String>) {
         match r.as_str() {
             "" => (i, None),
             x => (i, Some(x.to_string())),
@@ -52,9 +52,9 @@ impl InputParser<Posting> for PostingParser {
         Ok((
             input,
             Posting {
-                account: account,
-                commodity: commodity,
-                amount: amount,
+                account,
+                commodity,
+                amount,
             },
         ))
     }

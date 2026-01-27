@@ -1,15 +1,7 @@
 #![allow(dead_code)]
 #![allow(unused_variables)]
 
-use nom::bytes::streaming::tag;
 use nom::Parser;
-use nom::{
-    branch::alt,
-    bytes::complete::{take, take_until},
-    combinator::rest,
-    error::ParseError,
-    sequence::terminated,
-};
 
 mod common;
 mod posting;

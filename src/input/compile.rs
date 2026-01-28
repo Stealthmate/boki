@@ -10,7 +10,7 @@ pub fn compile_transaction(
         return Err("Must have 2 or more postings.".to_string());
     }
 
-    journal.transactions.push(output::Transaction {
+    let out_t = output::Transaction {
         header: output::TransactionHeader {
             timestamp: t.header.timestamp,
         },
@@ -26,7 +26,14 @@ pub fn compile_transaction(
                 amount: p.amount.unwrap(),
             })
             .collect(),
-    });
+    };
+
+    let net_total: i64 = out_t.postings.iter().map(|p| p.amount).sum();
+    if net_total != 0 {
+        return Err("Must balance to 0.".to_string());
+    }
+
+    journal.transactions.push(out_t);
 
     Ok(())
 }
@@ -128,6 +135,44 @@ mod test {
             ],
         }
     )]
+    #[case::with_net_negative_amounts(
+        ast::Transaction {
+            header: ast::TransactionHeader {
+                timestamp: chrono::DateTime::parse_from_rfc3339("2026-01-02T03:04:05.000+09:00")
+                    .unwrap(),
+            },
+            postings: vec![
+                ast::Posting {
+                    account: "foo".to_string(),
+                    commodity: None,
+                    amount: Some(0)
+                },
+                ast::Posting {
+                    account: "bar".to_string(),
+                    commodity: None,
+                    amount: Some(-1000)
+                }
+            ],
+        })]
+    #[case::with_net_positive_amounts(
+        ast::Transaction {
+            header: ast::TransactionHeader {
+                timestamp: chrono::DateTime::parse_from_rfc3339("2026-01-02T03:04:05.000+09:00")
+                    .unwrap(),
+            },
+            postings: vec![
+                ast::Posting {
+                    account: "foo".to_string(),
+                    commodity: None,
+                    amount: Some(0)
+                },
+                ast::Posting {
+                    account: "bar".to_string(),
+                    commodity: None,
+                    amount: Some(1000)
+                }
+            ],
+        })]
     fn test_compile_transaction_rejects(#[case] t: ast::Transaction) {
         let mut journal = output::Journal::default();
 

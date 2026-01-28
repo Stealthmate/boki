@@ -1,8 +1,11 @@
 use super::ast;
 
-use crate::output;
+use crate::{input::ast::Transaction, output};
 
-pub fn compile_node(node: &ast::ASTNode, journal: &mut output::Journal) -> Result<(), String> {
+pub fn compile_transaction(
+    t: &ast::Transaction,
+    journal: &mut output::Journal,
+) -> Result<(), String> {
     journal.transactions.push(output::Transaction {
         header: output::TransactionHeader {
             timestamp: chrono::DateTime::parse_from_rfc3339("2026-01-01T00:00:00.000+09:00")
@@ -12,6 +15,12 @@ pub fn compile_node(node: &ast::ASTNode, journal: &mut output::Journal) -> Resul
     });
 
     Ok(())
+}
+
+pub fn compile_node(node: &ast::ASTNode, journal: &mut output::Journal) -> Result<(), String> {
+    match node {
+        ast::ASTNode::Transaction(t) => compile_transaction(t, journal),
+    }
 }
 
 pub fn compile(nodes: Vec<ast::ASTNode>) -> Result<output::Journal, String> {

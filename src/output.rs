@@ -6,20 +6,23 @@ pub struct Posting {
     pub amount: i64,
 }
 
+pub type TransactionTimestamp = chrono::DateTime<chrono::FixedOffset>;
+
+#[derive(serde::Deserialize, Debug, PartialEq)]
+#[serde(deny_unknown_fields)]
+pub struct TransactionHeader {
+    pub timestamp: TransactionTimestamp,
+}
+
 #[derive(serde::Deserialize, Debug, PartialEq)]
 #[serde(deny_unknown_fields)]
 pub struct Transaction {
-    pub timestamp: chrono::DateTime<chrono::FixedOffset>,
+    pub header: TransactionHeader,
     pub postings: Vec<Posting>,
 }
 
 #[derive(serde::Deserialize, Debug, PartialEq)]
 #[serde(deny_unknown_fields)]
-pub struct Object {
+pub struct Journal {
     pub transactions: Vec<Transaction>,
-}
-
-pub fn read_object(path: &str) -> Object {
-    let file = std::fs::File::open(path).expect("Could not open file.");
-    serde_json::from_reader(file).expect("Could not read file")
 }

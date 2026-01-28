@@ -85,11 +85,18 @@ mod test {
                 timestamp: chrono::DateTime::parse_from_rfc3339("2026-01-02T03:04:05.000+09:00")
                     .unwrap(),
             },
-            postings: vec![ast::Posting {
-                account: "foo".to_string(),
-                commodity: Some("JPY".to_string()),
-                amount: Some(1000),
-            }],
+            postings: vec![
+                ast::Posting {
+                    account: "foo".to_string(),
+                    commodity: Some("JPY".to_string()),
+                    amount: Some(1000),
+                },
+                ast::Posting {
+                    account: "bar".to_string(),
+                    commodity: Some("JPY".to_string()),
+                    amount: Some(-1000),
+                },
+            ],
         };
 
         let mut journal = output::Journal {

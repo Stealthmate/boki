@@ -1,38 +1,91 @@
+use std::collections::HashMap;
+
 use super::ast;
 
 use crate::output::{self};
+
+fn compute_balances(postings: &[output::Posting]) -> HashMap<String, i64> {
+    let mut m = HashMap::new();
+
+    for p in postings.iter() {
+        let commodity = &p.commodity;
+        let balance = m.get(commodity).cloned().unwrap_or(0);
+
+        m.insert(commodity.clone(), balance + p.amount);
+    }
+
+    m
+}
 
 pub fn compile_transaction(
     t: &ast::Transaction,
     journal: &mut output::Journal,
 ) -> Result<(), String> {
-    if t.postings.len() < 2 {
+    use std::iter::repeat;
+
+    let n_postings = t.postings.len();
+    if n_postings < 2 {
         return Err("Must have 2 or more postings.".to_string());
     }
 
-    let prelim_net: i64 = t.postings.iter().map(|p| p.amount.unwrap_or(0)).sum();
+    let mut postings: Vec<output::Posting> = repeat(output::Posting::default())
+        .take(n_postings)
+        .collect();
+
+    let mut i_empty_amount = None;
+    for (i, (p_out, p_in)) in postings.iter_mut().zip(&t.postings).enumerate() {
+        p_out.account = p_in.account.clone();
+        p_out.commodity = p_in
+            .commodity
+            .clone()
+            .unwrap_or(journal.header.default_commodity.clone());
+        p_out.amount = p_in.amount.unwrap_or(0);
+        if p_in.amount.is_none() {
+            if i_empty_amount.is_some() {
+                return Err("Only a single posting can have an empty amount.".to_string());
+            }
+            i_empty_amount = Some(i);
+        }
+    }
+
+    let unbalanced_commodities: Vec<(String, i64)> = compute_balances(&postings)
+        .iter()
+        .filter_map(|(k, v)| match v {
+            0 => None,
+            _ => Some((k.clone(), *v)),
+        })
+        .collect();
+    if unbalanced_commodities.len() > 1 {
+        return Err("Only a single commodity can be unbalanced.".to_string());
+    }
+
+    let unbalanced_commodity = unbalanced_commodities.first().cloned();
+
+    if let Some(i) = i_empty_amount {
+        let posting = &mut postings[i];
+        let (commodity, amount) = unbalanced_commodity.unwrap_or((posting.commodity.clone(), 0));
+        if posting.commodity != commodity {
+            return Err(
+                "Empty posting commodity is different than unbalanced commodity.".to_string(),
+            );
+        }
+
+        posting.amount = -amount;
+    }
 
     let out_t = output::Transaction {
         header: output::TransactionHeader {
             timestamp: t.header.timestamp,
         },
-        postings: t
-            .postings
-            .iter()
-            .map(|p| output::Posting {
-                account: p.account.clone(),
-                commodity: p
-                    .commodity
-                    .clone()
-                    .unwrap_or(journal.header.default_commodity.clone()),
-                amount: p.amount.unwrap_or(-prelim_net),
-            })
-            .collect(),
+        postings,
     };
 
-    let net_total: i64 = out_t.postings.iter().map(|p| p.amount).sum();
-    if net_total != 0 {
-        return Err("Must balance to 0.".to_string());
+    if compute_balances(&out_t.postings)
+        .iter()
+        .any(|(_, a)| *a != 0)
+    {
+        println!("{:#?}", out_t.postings);
+        return Err("Unbalanced transaction.".to_string());
     }
 
     journal.transactions.push(out_t);
@@ -199,6 +252,25 @@ mod test {
                 }
             ],
         })]
+    #[case::with_unbalanced_commodities(
+        ast::Transaction {
+            header: ast::TransactionHeader {
+                timestamp: chrono::DateTime::parse_from_rfc3339("2026-01-02T03:04:05.000+09:00")
+                    .unwrap(),
+            },
+            postings: vec![
+                ast::Posting {
+                    account: "foo".to_string(),
+                    commodity: Some("USD".to_string()),
+                    amount: Some(1000)
+                },
+                ast::Posting {
+                    account: "bar".to_string(),
+                    commodity: Some("JPY".to_string()),
+                    amount: Some(-1000)
+                },
+            ],
+        })]
     fn test_compile_transaction_rejects(#[case] t: ast::Transaction) {
         let mut journal = output::Journal::default();
 
@@ -209,6 +281,7 @@ mod test {
     fn test_compile_transaction_substitutes_empty_commodity_for_default() {
         let mut t = sample_transaction();
         t.postings[0].commodity = None;
+        t.postings[1].commodity = Some("JPY".to_string());
 
         let mut journal = output::Journal::default();
 

@@ -148,7 +148,7 @@ mod test {
     }
 
     #[test]
-    fn test_all_literals() {
+    fn test_simple() {
         let t = sample_transaction();
         let mut journal = output::Journal::default();
         let result = compile_transaction(&t, &mut journal).expect("Failed.");
@@ -161,6 +161,35 @@ mod test {
             assert_eq!(p_out.commodity, p_in.commodity.clone().unwrap());
             assert_eq!(p_out.amount, p_in.amount.clone().unwrap());
         }
+    }
+
+    #[test]
+    fn test_substitutes_empty_commodity_for_default() {
+        let mut t = sample_transaction();
+        t.postings[0].commodity = None;
+        t.postings[1].commodity = Some("JPY".to_string());
+
+        let mut journal = output::Journal::default();
+
+        journal.header.default_commodity = "JPY".to_string();
+
+        let result = compile_transaction(&t, &mut journal).expect("Failed.");
+
+        let j_t = journal.transactions.first().expect("Failed.");
+        assert_eq!(j_t.postings[0].commodity, "JPY".to_string());
+    }
+
+    #[test]
+    fn test_auto_balances_single_missing_amount() {
+        let mut t = sample_transaction();
+        t.postings[0].amount = None;
+
+        let mut journal = output::Journal::default();
+
+        let result = compile_transaction(&t, &mut journal).expect("Failed.");
+
+        let j_t = journal.transactions.first().expect("Failed.");
+        assert_eq!(j_t.postings[0].amount, 1000);
     }
 
     #[rstest::rstest]
@@ -273,34 +302,5 @@ mod test {
         let mut journal = output::Journal::default();
 
         compile_transaction(&t, &mut journal).expect_err("Should have failed.");
-    }
-
-    #[test]
-    fn test_substitutes_empty_commodity_for_default() {
-        let mut t = sample_transaction();
-        t.postings[0].commodity = None;
-        t.postings[1].commodity = Some("JPY".to_string());
-
-        let mut journal = output::Journal::default();
-
-        journal.header.default_commodity = "JPY".to_string();
-
-        let result = compile_transaction(&t, &mut journal).expect("Failed.");
-
-        let j_t = journal.transactions.first().expect("Failed.");
-        assert_eq!(j_t.postings[0].commodity, "JPY".to_string());
-    }
-
-    #[test]
-    fn test_auto_balances_single_missing_amount() {
-        let mut t = sample_transaction();
-        t.postings[0].amount = None;
-
-        let mut journal = output::Journal::default();
-
-        let result = compile_transaction(&t, &mut journal).expect("Failed.");
-
-        let j_t = journal.transactions.first().expect("Failed.");
-        assert_eq!(j_t.postings[0].amount, 1000);
     }
 }

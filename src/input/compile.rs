@@ -10,6 +10,8 @@ pub fn compile_transaction(
         return Err("Must have 2 or more postings.".to_string());
     }
 
+    let prelim_net: i64 = t.postings.iter().map(|p| p.amount.unwrap_or(0)).sum();
+
     let out_t = output::Transaction {
         header: output::TransactionHeader {
             timestamp: t.header.timestamp,
@@ -23,7 +25,7 @@ pub fn compile_transaction(
                     .commodity
                     .clone()
                     .unwrap_or(journal.header.default_commodity.clone()),
-                amount: p.amount.unwrap(),
+                amount: p.amount.unwrap_or(-prelim_net),
             })
             .collect(),
     };
@@ -192,5 +194,18 @@ mod test {
 
         let j_t = journal.transactions.first().expect("Failed.");
         assert_eq!(j_t.postings[0].commodity, "JPY".to_string());
+    }
+
+    #[test]
+    fn test_compile_transaction_auto_balances_single_missing_amount() {
+        let mut t = sample_transaction();
+        t.postings[0].amount = None;
+
+        let mut journal = output::Journal::default();
+
+        let result = compile_transaction(&t, &mut journal).expect("Failed.");
+
+        let j_t = journal.transactions.first().expect("Failed.");
+        assert_eq!(j_t.postings[0].amount, 1000);
     }
 }

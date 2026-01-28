@@ -38,16 +38,21 @@ fn parse_comments(tokens: &[Token]) -> ParserResult<'_, ()> {
     Ok((rest, ()))
 }
 
-fn parse_node(tokens: &[Token]) -> ParserResult<'_, ast::ASTNode> {
+fn parse_transaction(tokens: &[Token]) -> ParserResult<'_, ast::Transaction> {
     Ok((
         &[],
-        ast::ASTNode::Transaction(ast::Transaction {
+        ast::Transaction {
             header: ast::TransactionHeader {
                 timestamp: DateTime::parse_from_rfc3339("2026-01-01T00:00:00.000+09:00").unwrap(),
             },
             postings: vec![],
-        }),
+        },
     ))
+}
+
+fn parse_node(tokens: &[Token]) -> ParserResult<'_, ast::ASTNode> {
+    let (tokens, t) = parse_transaction(tokens)?;
+    Ok((tokens, ast::ASTNode::Transaction(t)))
 }
 
 pub fn parse_tokens(tokens: &[Token]) -> ParserResult<'_, Vec<ast::ASTNode>> {

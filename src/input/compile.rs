@@ -1,6 +1,6 @@
 use super::ast;
 
-use crate::output::{self, Journal};
+use crate::output::{self};
 
 pub fn compile_transaction(
     t: &ast::Transaction,
@@ -19,7 +19,10 @@ pub fn compile_transaction(
             .iter()
             .map(|p| output::Posting {
                 account: p.account.clone(),
-                commodity: p.commodity.clone().unwrap(),
+                commodity: p
+                    .commodity
+                    .clone()
+                    .unwrap_or(journal.header.default_commodity.clone()),
                 amount: p.amount.unwrap(),
             })
             .collect(),
@@ -35,7 +38,7 @@ pub fn compile_node(node: &ast::ASTNode, journal: &mut output::Journal) -> Resul
 }
 
 pub fn compile(nodes: Vec<ast::ASTNode>) -> Result<output::Journal, String> {
-    let mut journal = Journal::default();
+    let mut journal = output::Journal::default();
 
     for node in &nodes {
         compile_node(node, &mut journal)?;
@@ -78,7 +81,7 @@ mod test {
     #[test]
     fn test_compile_node_simple_transaction() {
         let node = ast::ASTNode::Transaction(sample_transaction());
-        let mut journal = Journal::default();
+        let mut journal = output::Journal::default();
         let result = compile_node(&node, &mut journal).expect("Compilation failed.");
 
         assert_eq!(journal.transactions.len(), 1);
@@ -87,7 +90,7 @@ mod test {
     #[test]
     fn test_compile_transaction_all_literals() {
         let t = sample_transaction();
-        let mut journal = Journal::default();
+        let mut journal = output::Journal::default();
         let result = compile_transaction(&t, &mut journal).expect("Failed.");
 
         let j_t = journal.transactions.first().expect("Failed.");
@@ -126,8 +129,23 @@ mod test {
         }
     )]
     fn test_compile_transaction_rejects(#[case] t: ast::Transaction) {
-        let mut journal = Journal::default();
+        let mut journal = output::Journal::default();
 
         compile_transaction(&t, &mut journal).expect_err("Should have failed.");
+    }
+
+    #[test]
+    fn test_compile_transaction_substitutes_empty_commodity_for_default() {
+        let mut t = sample_transaction();
+        t.postings[0].commodity = None;
+
+        let mut journal = output::Journal::default();
+
+        journal.header.default_commodity = "JPY".to_string();
+
+        let result = compile_transaction(&t, &mut journal).expect("Failed.");
+
+        let j_t = journal.transactions.first().expect("Failed.");
+        assert_eq!(j_t.postings[0].commodity, "JPY".to_string());
     }
 }

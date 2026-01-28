@@ -2,6 +2,7 @@
 #![allow(unused_variables)]
 
 mod compile;
+mod parse;
 // mod lex;
 // mod block;
 // mod common;

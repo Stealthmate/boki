@@ -16,11 +16,29 @@ pub enum Token {
     Dedent,
 }
 
-type ParserError<'a> = nom_language::error::VerboseError<&'a [Token]>;
+impl Token {
+    pub fn is_comment(&self) -> bool {
+        matches!(self, Token::Comment(_))
+    }
+}
 
-type ParserResult<'a, T> = nom::IResult<&'a [Token], T, ParserError<'a>>;
+type ParserResult<'a, T> = Result<(&'a [Token], T), String>;
+
+fn parse_comments(tokens: &[Token]) -> ParserResult<'_, ()> {
+    let mut rest = tokens;
+
+    loop {
+        if !matches!(rest.first(), Some(x) if x.is_comment()) {
+            break;
+        }
+        rest = &rest[1..];
+    }
+
+    Ok((rest, ()))
+}
 
 pub fn parse_tokens(tokens: &[Token]) -> ParserResult<'_, Vec<ast::ASTNode>> {
+    let (tokens, _) = parse_comments(tokens)?;
     Ok((tokens, vec![]))
 }
 
@@ -31,6 +49,17 @@ mod test {
     #[test]
     fn test_simple() {
         let (rest, result) = parse_tokens(&[]).expect("Failed.");
+        assert!(result.is_empty());
+        assert!(rest.is_empty());
+    }
+
+    #[test]
+    fn test_only_comments() {
+        let tokens = [
+            Token::Comment("foo".to_string()),
+            Token::Comment("foo".to_string()),
+        ];
+        let (rest, result) = parse_tokens(&tokens).expect("Failed.");
         assert!(result.is_empty());
         assert!(rest.is_empty());
     }

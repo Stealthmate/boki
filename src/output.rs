@@ -12,6 +12,16 @@ pub struct Posting {
     pub amount: i64,
 }
 
+impl Default for Posting {
+    fn default() -> Self {
+        Posting {
+            account: "".to_string(),
+            commodity: "".to_string(),
+            amount: 0,
+        }
+    }
+}
+
 pub type TransactionTimestamp = chrono::DateTime<chrono::FixedOffset>;
 
 #[derive(serde::Deserialize, Debug, PartialEq)]

@@ -1,11 +1,15 @@
 use super::ast;
 
-use crate::{input::ast::Transaction, output};
+use crate::output;
 
 pub fn compile_transaction(
     t: &ast::Transaction,
     journal: &mut output::Journal,
 ) -> Result<(), String> {
+    if t.postings.len() < 2 {
+        return Err("Must have 2 or more postings.".to_string());
+    }
+
     journal.transactions.push(output::Transaction {
         header: output::TransactionHeader {
             timestamp: t.header.timestamp,
@@ -46,41 +50,8 @@ pub fn compile(nodes: Vec<ast::ASTNode>) -> Result<output::Journal, String> {
 mod test {
     use super::*;
 
-    #[test]
-    fn test_compile_simple() {
-        let ast = vec![ast::ASTNode::Transaction(ast::Transaction {
-            header: ast::TransactionHeader {
-                timestamp: chrono::DateTime::parse_from_rfc3339("2026-01-01T00:00:00.000+09:00")
-                    .unwrap(),
-            },
-            postings: vec![],
-        })];
-
-        let result = compile(ast).expect("Compilation failed.");
-    }
-
-    #[test]
-    fn test_compile_node_simple_transaction() {
-        let node = ast::ASTNode::Transaction(ast::Transaction {
-            header: ast::TransactionHeader {
-                timestamp: chrono::DateTime::parse_from_rfc3339("2026-01-01T00:00:00.000+09:00")
-                    .unwrap(),
-            },
-            postings: vec![],
-        });
-
-        let mut journal = output::Journal {
-            transactions: vec![],
-        };
-
-        let result = compile_node(&node, &mut journal).expect("Compilation failed.");
-
-        assert_eq!(journal.transactions.len(), 1);
-    }
-
-    #[test]
-    fn test_compile_transaction_all_literals() {
-        let t = ast::Transaction {
+    fn sample_transaction() -> ast::Transaction {
+        ast::Transaction {
             header: ast::TransactionHeader {
                 timestamp: chrono::DateTime::parse_from_rfc3339("2026-01-02T03:04:05.000+09:00")
                     .unwrap(),
@@ -97,13 +68,38 @@ mod test {
                     amount: Some(-1000),
                 },
             ],
-        };
+        }
+    }
+
+    #[test]
+    fn test_compile_simple() {
+        let ast = vec![ast::ASTNode::Transaction(sample_transaction())];
+
+        let result = compile(ast).expect("Compilation failed.");
+    }
+
+    #[test]
+    fn test_compile_node_simple_transaction() {
+        let node = ast::ASTNode::Transaction(sample_transaction());
 
         let mut journal = output::Journal {
             transactions: vec![],
         };
 
-        let result = compile_transaction(&t, &mut journal);
+        let result = compile_node(&node, &mut journal).expect("Compilation failed.");
+
+        assert_eq!(journal.transactions.len(), 1);
+    }
+
+    #[test]
+    fn test_compile_transaction_all_literals() {
+        let t = sample_transaction();
+
+        let mut journal = output::Journal {
+            transactions: vec![],
+        };
+
+        let result = compile_transaction(&t, &mut journal).expect("Failed.");
 
         let j_t = journal.transactions.first().expect("Failed.");
         assert_eq!(j_t.header.timestamp, t.header.timestamp);
@@ -113,5 +109,38 @@ mod test {
             assert_eq!(p_out.commodity, p_in.commodity.clone().unwrap());
             assert_eq!(p_out.amount, p_in.amount.clone().unwrap());
         }
+    }
+
+    #[rstest::rstest]
+    #[case::with_0_postings(
+        ast::Transaction {
+            header: ast::TransactionHeader {
+                timestamp: chrono::DateTime::parse_from_rfc3339("2026-01-02T03:04:05.000+09:00")
+                    .unwrap(),
+            },
+            postings: vec![],
+        }
+    )]
+    #[case::with_1_posting(
+        ast::Transaction {
+            header: ast::TransactionHeader {
+                timestamp: chrono::DateTime::parse_from_rfc3339("2026-01-02T03:04:05.000+09:00")
+                    .unwrap(),
+            },
+            postings: vec![
+                ast::Posting {
+                    account: "foo".to_string(),
+                    commodity: None,
+                    amount: None
+                }
+            ],
+        }
+    )]
+    fn test_compile_transaction_rejects(#[case] t: ast::Transaction) {
+        let mut journal = output::Journal {
+            transactions: vec![],
+        };
+
+        compile_transaction(&t, &mut journal).expect_err("Should have failed.");
     }
 }

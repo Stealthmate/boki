@@ -175,6 +175,30 @@ mod test {
                 }
             ],
         })]
+    #[case::with_multiple_empty_amounts(
+        ast::Transaction {
+            header: ast::TransactionHeader {
+                timestamp: chrono::DateTime::parse_from_rfc3339("2026-01-02T03:04:05.000+09:00")
+                    .unwrap(),
+            },
+            postings: vec![
+                ast::Posting {
+                    account: "foo".to_string(),
+                    commodity: None,
+                    amount: Some(1000)
+                },
+                ast::Posting {
+                    account: "bar".to_string(),
+                    commodity: None,
+                    amount: None
+                },
+                ast::Posting {
+                    account: "bar".to_string(),
+                    commodity: None,
+                    amount: None
+                }
+            ],
+        })]
     fn test_compile_transaction_rejects(#[case] t: ast::Transaction) {
         let mut journal = output::Journal::default();
 

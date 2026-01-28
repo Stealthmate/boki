@@ -1,4 +1,4 @@
-use crate::input::ast;
+use super::ast;
 use crate::output;
 use std::collections::HashMap;
 
@@ -117,7 +117,8 @@ impl TransactionCompiler {
 
 #[cfg(test)]
 mod test {
-    use crate::{input::ast, output};
+    use super::ast;
+    use crate::output;
 
     fn compile_transaction(
         t: &ast::Transaction,

@@ -1,7 +1,6 @@
 #![allow(dead_code)]
 #![allow(unused_variables)]
 
-mod ast;
 mod compile;
 // mod lex;
 // mod block;

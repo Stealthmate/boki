@@ -1,7 +1,6 @@
-use super::ast;
-
 use crate::output::{self};
 
+mod ast;
 mod transaction;
 
 pub fn compile_node(node: &ast::ASTNode, journal: &mut output::Journal) -> Result<(), String> {

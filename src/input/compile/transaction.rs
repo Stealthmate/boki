@@ -4,34 +4,37 @@ use std::collections::HashMap;
 
 pub struct TransactionCompiler;
 
-fn compute_balances(postings: &[output::Posting]) -> HashMap<String, i64> {
-    let mut m = HashMap::new();
+impl TransactionCompiler {
+    fn compute_balances(postings: &[output::Posting]) -> HashMap<String, i64> {
+        let mut m = HashMap::new();
 
-    for p in postings.iter() {
-        let commodity = &p.commodity;
-        let balance = m.get(commodity).cloned().unwrap_or(0);
+        for p in postings.iter() {
+            let commodity = &p.commodity;
+            let balance = m.get(commodity).cloned().unwrap_or(0);
 
-        m.insert(commodity.clone(), balance + p.amount);
+            m.insert(commodity.clone(), balance + p.amount);
+        }
+
+        m
     }
 
-    m
-}
-
-impl TransactionCompiler {
-    pub fn compile(t: &ast::Transaction, journal: &mut output::Journal) -> Result<(), String> {
+    fn validate_postings(
+        postings: &[ast::Posting],
+        journal: &output::Journal,
+    ) -> Result<(Vec<output::Posting>, Option<usize>), String> {
         use std::iter::repeat;
 
-        let n_postings = t.postings.len();
+        let n_postings = postings.len();
         if n_postings < 2 {
             return Err("Must have 2 or more postings.".to_string());
         }
 
-        let mut postings: Vec<output::Posting> = repeat(output::Posting::default())
+        let mut out_postings: Vec<output::Posting> = repeat(output::Posting::default())
             .take(n_postings)
             .collect();
 
         let mut i_empty_amount = None;
-        for (i, (p_out, p_in)) in postings.iter_mut().zip(&t.postings).enumerate() {
+        for (i, (p_out, p_in)) in out_postings.iter_mut().zip(postings).enumerate() {
             p_out.account = p_in.account.clone();
             p_out.commodity = p_in
                 .commodity
@@ -46,13 +49,38 @@ impl TransactionCompiler {
             }
         }
 
-        let unbalanced_commodities: Vec<(String, i64)> = compute_balances(&postings)
+        Ok((out_postings, i_empty_amount))
+    }
+
+    fn find_unbalanced_commodities(postings: &[output::Posting]) -> Vec<(String, i64)> {
+        Self::compute_balances(postings)
             .iter()
             .filter_map(|(k, v)| match v {
                 0 => None,
                 _ => Some((k.clone(), *v)),
             })
-            .collect();
+            .collect()
+    }
+
+    fn ensure_transaction_is_balanced(t: &output::Transaction) -> Result<(), String> {
+        if Self::compute_balances(&t.postings)
+            .iter()
+            .any(|(_, a)| *a != 0)
+        {
+            return Err("Unbalanced transaction.".to_string());
+        }
+
+        Ok(())
+    }
+
+    pub fn compile(t: &ast::Transaction, journal: &mut output::Journal) -> Result<(), String> {
+        let n_postings = t.postings.len();
+        if n_postings < 2 {
+            return Err("Must have 2 or more postings.".to_string());
+        }
+
+        let (mut postings, i_empty_amount) = Self::validate_postings(&t.postings, journal)?;
+        let unbalanced_commodities = Self::find_unbalanced_commodities(&postings);
         if unbalanced_commodities.len() > 1 {
             return Err("Only a single commodity can be unbalanced.".to_string());
         }
@@ -79,13 +107,7 @@ impl TransactionCompiler {
             postings,
         };
 
-        if compute_balances(&out_t.postings)
-            .iter()
-            .any(|(_, a)| *a != 0)
-        {
-            println!("{:#?}", out_t.postings);
-            return Err("Unbalanced transaction.".to_string());
-        }
+        Self::ensure_transaction_is_balanced(&out_t)?;
 
         journal.transactions.push(out_t);
 

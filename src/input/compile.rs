@@ -1,6 +1,6 @@
 use super::ast;
 
-use crate::output;
+use crate::output::{self, Journal};
 
 pub fn compile_transaction(
     t: &ast::Transaction,
@@ -35,9 +35,7 @@ pub fn compile_node(node: &ast::ASTNode, journal: &mut output::Journal) -> Resul
 }
 
 pub fn compile(nodes: Vec<ast::ASTNode>) -> Result<output::Journal, String> {
-    let mut journal = output::Journal {
-        transactions: vec![],
-    };
+    let mut journal = Journal::default();
 
     for node in &nodes {
         compile_node(node, &mut journal)?;
@@ -74,18 +72,13 @@ mod test {
     #[test]
     fn test_compile_simple() {
         let ast = vec![ast::ASTNode::Transaction(sample_transaction())];
-
         let result = compile(ast).expect("Compilation failed.");
     }
 
     #[test]
     fn test_compile_node_simple_transaction() {
         let node = ast::ASTNode::Transaction(sample_transaction());
-
-        let mut journal = output::Journal {
-            transactions: vec![],
-        };
-
+        let mut journal = Journal::default();
         let result = compile_node(&node, &mut journal).expect("Compilation failed.");
 
         assert_eq!(journal.transactions.len(), 1);
@@ -94,11 +87,7 @@ mod test {
     #[test]
     fn test_compile_transaction_all_literals() {
         let t = sample_transaction();
-
-        let mut journal = output::Journal {
-            transactions: vec![],
-        };
-
+        let mut journal = Journal::default();
         let result = compile_transaction(&t, &mut journal).expect("Failed.");
 
         let j_t = journal.transactions.first().expect("Failed.");
@@ -137,9 +126,7 @@ mod test {
         }
     )]
     fn test_compile_transaction_rejects(#[case] t: ast::Transaction) {
-        let mut journal = output::Journal {
-            transactions: vec![],
-        };
+        let mut journal = Journal::default();
 
         compile_transaction(&t, &mut journal).expect_err("Should have failed.");
     }

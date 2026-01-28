@@ -1,5 +1,11 @@
 #[derive(serde::Deserialize, Debug, PartialEq)]
 #[serde(deny_unknown_fields)]
+pub struct JournalHeader {
+    pub default_commodity: String,
+}
+
+#[derive(serde::Deserialize, Debug, PartialEq)]
+#[serde(deny_unknown_fields)]
 pub struct Posting {
     pub account: String,
     pub commodity: String,
@@ -24,5 +30,17 @@ pub struct Transaction {
 #[derive(serde::Deserialize, Debug, PartialEq)]
 #[serde(deny_unknown_fields)]
 pub struct Journal {
+    pub header: JournalHeader,
     pub transactions: Vec<Transaction>,
+}
+
+impl Default for Journal {
+    fn default() -> Self {
+        Journal {
+            header: JournalHeader {
+                default_commodity: "".to_string(),
+            },
+            transactions: vec![],
+        }
+    }
 }

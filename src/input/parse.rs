@@ -1,31 +1,14 @@
-use chrono::{DateTime, FixedOffset};
+use chrono::DateTime;
 
 use crate::input::compile::ast;
 
-pub type Timestamp = DateTime<FixedOffset>;
+mod core;
+mod syntax;
+mod transaction;
 
-#[derive(Debug, PartialEq)]
-pub enum Token {
-    Timestamp(Timestamp),
-    Amount(i64),
-    Identifier(String),
-    AccountSeparator,
-    PostingSeparator,
-    LineSeparator,
-    Comment(String),
-    Indent,
-    Dedent,
-}
+use core::ParserResult;
 
-impl Token {
-    pub fn is_comment(&self) -> bool {
-        matches!(self, Token::Comment(_))
-    }
-}
-
-type ParserResult<'a, T> = Result<(&'a [Token], T), String>;
-
-fn parse_comments(tokens: &[Token]) -> ParserResult<'_, ()> {
+fn parse_comments(tokens: &[syntax::Token]) -> ParserResult<'_, ()> {
     let mut rest = tokens;
 
     loop {
@@ -38,24 +21,12 @@ fn parse_comments(tokens: &[Token]) -> ParserResult<'_, ()> {
     Ok((rest, ()))
 }
 
-fn parse_transaction(tokens: &[Token]) -> ParserResult<'_, ast::Transaction> {
-    Ok((
-        &[],
-        ast::Transaction {
-            header: ast::TransactionHeader {
-                timestamp: DateTime::parse_from_rfc3339("2026-01-01T00:00:00.000+09:00").unwrap(),
-            },
-            postings: vec![],
-        },
-    ))
-}
-
-fn parse_node(tokens: &[Token]) -> ParserResult<'_, ast::ASTNode> {
-    let (tokens, t) = parse_transaction(tokens)?;
+fn parse_node(tokens: &[syntax::Token]) -> ParserResult<'_, ast::ASTNode> {
+    let (tokens, t) = transaction::TransactionParser::parse(tokens)?;
     Ok((tokens, ast::ASTNode::Transaction(t)))
 }
 
-pub fn parse_tokens(tokens: &[Token]) -> ParserResult<'_, Vec<ast::ASTNode>> {
+pub fn parse_tokens(tokens: &[syntax::Token]) -> ParserResult<'_, Vec<ast::ASTNode>> {
     let (tokens, _) = parse_comments(tokens)?;
 
     let mut rest = tokens;
@@ -73,6 +44,7 @@ pub fn parse_tokens(tokens: &[Token]) -> ParserResult<'_, Vec<ast::ASTNode>> {
 #[cfg(test)]
 mod test {
     use super::*;
+    use syntax::Token;
 
     #[test]
     fn test_empty() {

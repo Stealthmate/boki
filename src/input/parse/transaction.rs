@@ -5,14 +5,21 @@ use chrono::DateTime;
 pub struct TransactionParser;
 
 impl TransactionParser {
+    fn parse_header(tokens: &[Token]) -> ParserResult<'_, ast::TransactionHeader> {
+        Ok((
+            tokens,
+            ast::TransactionHeader {
+                timestamp: DateTime::parse_from_rfc3339("2026-01-01T00:00:00.000+09:00").unwrap(),
+            },
+        ))
+    }
+
     pub fn parse(tokens: &[Token]) -> ParserResult<'_, ast::Transaction> {
+        let (tokens, header) = Self::parse_header(tokens)?;
         Ok((
             &[],
             ast::Transaction {
-                header: ast::TransactionHeader {
-                    timestamp: DateTime::parse_from_rfc3339("2026-01-01T00:00:00.000+09:00")
-                        .unwrap(),
-                },
+                header,
                 postings: vec![],
             },
         ))

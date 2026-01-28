@@ -47,7 +47,7 @@ mod test {
     use super::*;
 
     #[test]
-    fn test_simple() {
+    fn test_empty() {
         let (rest, result) = parse_tokens(&[]).expect("Failed.");
         assert!(result.is_empty());
         assert!(rest.is_empty());

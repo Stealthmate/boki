@@ -100,6 +100,29 @@ where
     ManyParser { parser }
 }
 
+struct OptionalParser<P> {
+    parser: P,
+}
+
+impl<'a, T, P> Parser<'a, Option<T>> for OptionalParser<P>
+where
+    P: Parser<'a, T>,
+{
+    fn parse(&self, tokens: &'a [Token]) -> ParserResult<'a, Option<T>> {
+        match self.parser.parse(tokens) {
+            Ok((rest, x)) => Ok((rest, Some(x))),
+            Err(_) => Ok((tokens, None)),
+        }
+    }
+}
+
+pub fn optional<'a, P1, T>(parser: P1) -> impl Parser<'a, Option<T>>
+where
+    P1: Parser<'a, T>,
+{
+    OptionalParser { parser }
+}
+
 #[cfg(test)]
 mod test {
     use super::*;

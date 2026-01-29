@@ -39,17 +39,17 @@ impl TransactionParser {
 
         let (tokens, account) = Self::parse_account(tokens)?;
         let (tokens, _) = core::parse_posting_separator(tokens)?;
-        let (tokens, commodity) = Self::parse_commodity(tokens)?;
+        let (tokens, commodity) = core::optional(Self::parse_commodity).parse(tokens)?;
         let (tokens, _) = core::parse_posting_separator(tokens)?;
-        let (tokens, amount) = core::parse_amount(tokens)?;
+        let (tokens, amount) = core::optional(core::parse_amount).parse(tokens)?;
         let (tokens, _) = core::parse_line_separator(tokens)?;
 
         Ok((
             tokens,
             ast::Posting {
                 account,
-                commodity: Some(commodity),
-                amount: Some(amount),
+                commodity,
+                amount,
             },
         ))
     }
@@ -100,6 +100,42 @@ mod test {
         assert_eq!(result.account, "asset/cce/cash".to_string());
         assert_eq!(result.commodity, Some("JPY".to_string()));
         assert_eq!(result.amount, Some(1000));
+        assert!(rest.is_empty());
+    }
+
+    #[test]
+    fn test_posting_omitted_commodity() {
+        let tokens = [
+            Token::Identifier("asset".to_string()),
+            Token::AccountSeparator,
+            Token::Identifier("cce".to_string()),
+            Token::AccountSeparator,
+            Token::Identifier("cash".to_string()),
+            Token::PostingSeparator,
+            Token::PostingSeparator,
+            Token::Amount(1000),
+            Token::LineSeparator,
+        ];
+        let (rest, result) = TransactionParser::parse_posting(&tokens).expect("Failed.");
+        assert_eq!(result.commodity, None);
+        assert!(rest.is_empty());
+    }
+
+    #[test]
+    fn test_posting_omitted_amount() {
+        let tokens = [
+            Token::Identifier("asset".to_string()),
+            Token::AccountSeparator,
+            Token::Identifier("cce".to_string()),
+            Token::AccountSeparator,
+            Token::Identifier("cash".to_string()),
+            Token::PostingSeparator,
+            Token::Identifier("JPY".to_string()),
+            Token::PostingSeparator,
+            Token::LineSeparator,
+        ];
+        let (rest, result) = TransactionParser::parse_posting(&tokens).expect("Failed.");
+        assert_eq!(result.amount, None);
         assert!(rest.is_empty());
     }
 

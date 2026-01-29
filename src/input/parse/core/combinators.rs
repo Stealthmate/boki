@@ -72,7 +72,7 @@ mod test {
 
     #[test]
     fn test_many_not_matching() {
-        let tokens = [Token::LineSeparator];
+        let tokens = [Token::Indent];
         let (rest, items) = many(parse_line_separator).parse(&tokens).expect("Failed.");
         assert!(items.is_empty());
         assert!(!rest.is_empty());

@@ -8,23 +8,9 @@ use nom::Parser;
 
 mod core;
 mod identifier;
+mod whitespace;
 
 use core::LexResult;
-
-fn lex_whitespace(input: &str) -> LexResult<'_, ()> {
-    let (input, _) = is_a(" \t").parse(input)?;
-    Ok((input, ()))
-}
-
-fn lex_newline(input: &str) -> LexResult<'_, ()> {
-    let (input, _) = is_a("\n\r").parse(input)?;
-    Ok((input, ()))
-}
-
-fn lex_linespace(input: &str) -> LexResult<'_, ()> {
-    let (input, _) = many1(terminated(opt(lex_whitespace), lex_newline)).parse(input)?;
-    Ok((input, ()))
-}
 
 fn lex_indent(input: &str) -> LexResult<'_, Token> {
     let (input, _) = tag("  ").parse(input)?;
@@ -53,8 +39,8 @@ fn lex_single_token(input: &str) -> LexResult<'_, Token> {
 
 pub fn lex_string(input: &str) -> LexResult<'_, Vec<Token>> {
     preceded(
-        opt(lex_linespace),
-        many0(terminated(lex_single_token, opt(lex_linespace))),
+        opt(whitespace::linespace),
+        many0(terminated(lex_single_token, opt(whitespace::linespace))),
     )
     .parse(input)
 }

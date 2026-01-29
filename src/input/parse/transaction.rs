@@ -1,32 +1,34 @@
 use crate::input::compile::ast;
-use crate::input::parse::syntax::Token;
-use crate::input::parse::{core, syntax};
-use chrono::DateTime;
+use crate::input::parse::core;
+use crate::input::parse::core::Parser;
+use crate::input::parse::core::Token;
+
 pub struct TransactionParser;
 
 impl TransactionParser {
     fn parse_header(tokens: &[Token]) -> core::ParserResult<'_, ast::TransactionHeader> {
-        let (tokens, timestamp) = syntax::parse_timestamp(tokens)?;
-        let (tokens, _) = syntax::parse_line_separator(tokens)?;
+        let (tokens, timestamp) = core::parse_timestamp(tokens)?;
+        let (tokens, _) = core::parse_line_separator(tokens)?;
         Ok((tokens, ast::TransactionHeader { timestamp }))
+    }
+
+    fn parse_posting(tokens: &[Token]) -> core::ParserResult<'_, ast::Posting> {
+        todo!()
     }
 
     pub fn parse(tokens: &[Token]) -> core::ParserResult<'_, ast::Transaction> {
         let (tokens, header) = Self::parse_header(tokens)?;
-        Ok((
-            &[],
-            ast::Transaction {
-                header,
-                postings: vec![],
-            },
-        ))
+        let (tokens, postings) = core::many(Self::parse_posting).parse(tokens)?;
+        let (tokens, _) = core::parse_dedent(tokens)?;
+
+        Ok((&[], ast::Transaction { header, postings }))
     }
 }
 
 #[cfg(test)]
 mod test {
     use super::TransactionParser;
-    use crate::input::parse::syntax::{Timestamp, Token};
+    use crate::input::parse::core::{Timestamp, Token};
 
     fn sample_timestamp() -> Timestamp {
         Timestamp::parse_from_rfc3339("2026-01-02T03:04:05.000+09:00").unwrap()

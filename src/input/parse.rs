@@ -3,12 +3,11 @@ use chrono::DateTime;
 use crate::input::compile::ast;
 
 mod core;
-mod syntax;
 mod transaction;
 
 use core::ParserResult;
 
-fn parse_comments(tokens: &[syntax::Token]) -> ParserResult<'_, ()> {
+fn parse_comments(tokens: &[core::Token]) -> ParserResult<'_, ()> {
     let mut rest = tokens;
 
     loop {
@@ -21,12 +20,12 @@ fn parse_comments(tokens: &[syntax::Token]) -> ParserResult<'_, ()> {
     Ok((rest, ()))
 }
 
-fn parse_node(tokens: &[syntax::Token]) -> ParserResult<'_, ast::ASTNode> {
+fn parse_node(tokens: &[core::Token]) -> ParserResult<'_, ast::ASTNode> {
     let (tokens, t) = transaction::TransactionParser::parse(tokens)?;
     Ok((tokens, ast::ASTNode::Transaction(t)))
 }
 
-pub fn parse_tokens(tokens: &[syntax::Token]) -> ParserResult<'_, Vec<ast::ASTNode>> {
+pub fn parse_tokens(tokens: &[core::Token]) -> ParserResult<'_, Vec<ast::ASTNode>> {
     let (tokens, _) = parse_comments(tokens)?;
 
     let mut rest = tokens;
@@ -44,7 +43,7 @@ pub fn parse_tokens(tokens: &[syntax::Token]) -> ParserResult<'_, Vec<ast::ASTNo
 #[cfg(test)]
 mod test {
     use super::*;
-    use syntax::Token;
+    use crate::input::parse::core::Token;
 
     #[test]
     fn test_empty() {

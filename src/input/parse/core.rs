@@ -1,26 +1,65 @@
-use crate::input::parse::syntax;
+use chrono::{DateTime, FixedOffset};
 
-pub type ParserResult<'a, T> = Result<(&'a [syntax::Token], T), String>;
+pub type Timestamp = DateTime<FixedOffset>;
 
-pub fn next(tokens: &[syntax::Token]) -> ParserResult<'_, syntax::Token> {
+#[derive(Clone, Debug, PartialEq)]
+pub enum Token {
+    Timestamp(Timestamp),
+    Amount(i64),
+    Identifier(String),
+    AccountSeparator,
+    PostingSeparator,
+    LineSeparator,
+    Comment(String),
+    Indent,
+    Dedent,
+}
+
+impl Token {
+    pub fn is_comment(&self) -> bool {
+        matches!(self, Token::Comment(_))
+    }
+}
+
+pub type ParserResult<'a, T> = Result<(&'a [Token], T), String>;
+
+pub trait Parser<'a, T> {
+    fn parse(&self, tokens: &'a [Token]) -> ParserResult<'a, T>;
+}
+
+impl<'a, T, F> Parser<'a, T> for F
+where
+    F: Fn(&'a [Token]) -> ParserResult<'a, T>,
+{
+    fn parse(&self, tokens: &'a [Token]) -> ParserResult<'a, T> {
+        self(tokens)
+    }
+}
+
+pub fn next(tokens: &[Token]) -> ParserResult<'_, Token> {
     match tokens.first() {
         None => Err("No more tokens!".to_string()),
         Some(x) => Ok((&tokens[1..], x.clone())),
     }
 }
 
-pub trait Parser<'a, T> {
-    fn parse(&self, tokens: &'a [syntax::Token]) -> ParserResult<'a, T>;
+macro_rules! parse_token {
+    ($name:ident, $return_type:ty, $expansion:pat, $return_value:expr) => {
+        pub fn $name(tokens: &[Token]) -> ParserResult<'_, $return_type> {
+            let (rest, t) = next(tokens)?;
+            let $expansion = t else {
+                return Err("Wrong token".to_string());
+            };
+
+            Ok((rest, $return_value))
+        }
+    };
 }
 
-impl<'a, T, F> Parser<'a, T> for F
-where
-    F: Fn(&'a [syntax::Token]) -> ParserResult<'a, T>,
-{
-    fn parse(&self, tokens: &'a [syntax::Token]) -> ParserResult<'a, T> {
-        self(tokens)
-    }
-}
+parse_token!(parse_timestamp, Timestamp, Token::Timestamp(ts), ts);
+parse_token!(parse_line_separator, (), Token::LineSeparator, ());
+parse_token!(parse_indent, (), Token::Indent, ());
+parse_token!(parse_dedent, (), Token::Dedent, ());
 
 struct ManyParser<P> {
     parser: P,
@@ -30,7 +69,7 @@ impl<'a, T, P> Parser<'a, Vec<T>> for ManyParser<P>
 where
     P: Parser<'a, T>,
 {
-    fn parse(&self, tokens: &'a [syntax::Token]) -> ParserResult<'a, Vec<T>> {
+    fn parse(&self, tokens: &'a [Token]) -> ParserResult<'a, Vec<T>> {
         todo!()
     }
 }

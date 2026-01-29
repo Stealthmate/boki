@@ -22,20 +22,20 @@ impl Token {
     }
 }
 
-pub fn parse_timestamp(tokens: &[Token]) -> core::ParserResult<'_, Timestamp> {
-    let (rest, t) = core::next(tokens)?;
-    let Token::Timestamp(ts) = t else {
-        return Err("Wrong token".to_string());
-    };
+macro_rules! parse_token {
+    ($name:ident, $return_type:ty, $expansion:pat, $return_value:expr) => {
+        pub fn $name(tokens: &[Token]) -> core::ParserResult<'_, $return_type> {
+            let (rest, t) = core::next(tokens)?;
+            let $expansion = t else {
+                return Err("Wrong token".to_string());
+            };
 
-    Ok((rest, ts))
+            Ok((rest, $return_value))
+        }
+    };
 }
 
-pub fn parse_line_separator(tokens: &[Token]) -> core::ParserResult<'_, ()> {
-    let (rest, t) = core::next(tokens)?;
-    let Token::LineSeparator = t else {
-        return Err("Wrong token".to_string());
-    };
-
-    Ok((rest, ()))
-}
+parse_token!(parse_timestamp, Timestamp, Token::Timestamp(ts), ts);
+parse_token!(parse_line_separator, (), Token::LineSeparator, ());
+parse_token!(parse_indent, (), Token::Indent, ());
+parse_token!(parse_dedent, (), Token::Dedent, ());

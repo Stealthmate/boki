@@ -7,6 +7,7 @@ use nom::sequence::{pair, preceded, terminated};
 use nom::Parser;
 
 mod core;
+mod identifier;
 
 use core::LexResult;
 
@@ -31,14 +32,9 @@ fn lex_indent(input: &str) -> LexResult<'_, Token> {
     Ok((input, Token::Indent))
 }
 
-fn lex_identifier(input: &str) -> LexResult<'_, Token> {
-    let (input, x) = pair(alpha1, alphanumeric0).parse(input)?;
-    Ok((input, Token::Identifier(x.0.to_string() + x.1)))
-}
-
 fn lex_single_token(input: &str) -> LexResult<'_, Token> {
     let mut results = vec![];
-    for mut lexer in [lex_identifier, lex_indent] {
+    for mut lexer in [identifier::lex, lex_indent] {
         if let Ok(x) = lexer.parse(input) {
             results.push(x);
         }

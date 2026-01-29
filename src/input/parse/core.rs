@@ -57,6 +57,10 @@ macro_rules! parse_token {
 }
 
 parse_token!(parse_timestamp, Timestamp, Token::Timestamp(ts), ts);
+parse_token!(parse_amount, i64, Token::Amount(x), x);
+parse_token!(parse_identifier, String, Token::Identifier(x), x);
+parse_token!(parse_account_separator, (), Token::AccountSeparator, ());
+parse_token!(parse_posting_separator, (), Token::PostingSeparator, ());
 parse_token!(parse_line_separator, (), Token::LineSeparator, ());
 parse_token!(parse_indent, (), Token::Indent, ());
 parse_token!(parse_dedent, (), Token::Dedent, ());

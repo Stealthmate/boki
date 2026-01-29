@@ -6,7 +6,9 @@ use nom::multi::{many0, many1};
 use nom::sequence::{pair, preceded, terminated};
 use nom::Parser;
 
-type LexResult<'a, T> = nom::IResult<&'a str, T, nom_language::error::VerboseError<&'a str>>;
+mod core;
+
+use core::LexResult;
 
 fn lex_whitespace(input: &str) -> LexResult<'_, ()> {
     let (input, _) = is_a(" \t").parse(input)?;

@@ -1,6 +1,7 @@
 use crate::input::compile::ast;
 
 mod core;
+pub use core::Token;
 mod transaction;
 
 use core::ParserResult;

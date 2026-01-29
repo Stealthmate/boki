@@ -70,7 +70,22 @@ where
     P: Parser<'a, T>,
 {
     fn parse(&self, tokens: &'a [Token]) -> ParserResult<'a, Vec<T>> {
-        todo!()
+        let mut parsed = vec![];
+        let mut rest = tokens;
+
+        loop {
+            match self.parser.parse(rest) {
+                Err(_) => {
+                    break;
+                }
+                Ok((next_rest, next_parsed)) => {
+                    rest = next_rest;
+                    parsed.push(next_parsed);
+                }
+            }
+        }
+
+        Ok((rest, parsed))
     }
 }
 
@@ -79,4 +94,25 @@ where
     P1: Parser<'a, T>,
 {
     ManyParser { parser }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn test_many_empty() {
+        let tokens = [];
+        let (rest, items) = many(parse_timestamp).parse(&tokens).expect("Failed.");
+        assert!(items.is_empty());
+        assert!(rest.is_empty());
+    }
+
+    #[test]
+    fn test_many_not_matching() {
+        let tokens = [Token::Indent];
+        let (rest, items) = many(parse_timestamp).parse(&tokens).expect("Failed.");
+        assert!(items.is_empty());
+        assert!(!rest.is_empty());
+    }
 }

@@ -1,5 +1,3 @@
-use chrono::DateTime;
-
 use crate::input::compile::ast;
 
 mod core;
@@ -44,6 +42,7 @@ pub fn parse_tokens(tokens: &[core::Token]) -> ParserResult<'_, Vec<ast::ASTNode
 mod test {
     use super::*;
     use crate::input::parse::core::Token;
+    use chrono::DateTime;
 
     #[test]
     fn test_empty() {

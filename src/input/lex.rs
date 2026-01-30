@@ -19,9 +19,25 @@ fn lex_indent(input: &str) -> LexResult<'_, Token> {
     Ok((input, Token::Indent))
 }
 
+fn lex_account_separator(input: &str) -> LexResult<'_, Token> {
+    let (input, _) = tag("/").parse(input)?;
+    Ok((input, Token::AccountSeparator))
+}
+
+fn lex_posting_separator(input: &str) -> LexResult<'_, Token> {
+    let (input, _) = tag(";").parse(input)?;
+    Ok((input, Token::PostingSeparator))
+}
+
 fn lex_single_token(input: &str) -> LexResult<'_, Token> {
     let mut results = vec![];
-    for mut lexer in [identifier::lex, timestamp::lex, lex_indent] {
+    for mut lexer in [
+        identifier::lex,
+        timestamp::lex,
+        lex_indent,
+        lex_account_separator,
+        lex_posting_separator,
+    ] {
         if let Ok(x) = lexer.parse(input) {
             results.push(x);
         }

@@ -6,6 +6,7 @@ use nom::multi::many0;
 use nom::sequence::{preceded, terminated};
 use nom::Parser;
 
+mod amount;
 mod core;
 mod identifier;
 mod timestamp;
@@ -34,6 +35,7 @@ fn lex_single_token(input: &str) -> LexResult<'_, Token> {
     for mut lexer in [
         identifier::lex,
         timestamp::lex,
+        amount::lex,
         lex_indent,
         lex_account_separator,
         lex_posting_separator,

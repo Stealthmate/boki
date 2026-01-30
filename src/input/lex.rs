@@ -20,12 +20,12 @@ fn lex_indent(input: &str) -> LexResult<'_, Token> {
 }
 
 fn lex_account_separator(input: &str) -> LexResult<'_, Token> {
-    let (input, _) = tag("/").parse(input)?;
+    let (input, _) = preceded(opt(whitespace::whitespace), tag("/")).parse(input)?;
     Ok((input, Token::AccountSeparator))
 }
 
 fn lex_posting_separator(input: &str) -> LexResult<'_, Token> {
-    let (input, _) = tag(";").parse(input)?;
+    let (input, _) = preceded(opt(whitespace::whitespace), tag(";")).parse(input)?;
     Ok((input, Token::PostingSeparator))
 }
 

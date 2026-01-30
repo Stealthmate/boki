@@ -1,8 +1,9 @@
 use super::core::LexResult;
+use crate::input::lex::whitespace;
 use crate::input::parse::Token;
 use nom::bytes::complete::is_a;
 use nom::combinator::{opt, recognize};
-use nom::sequence::pair;
+use nom::sequence::{pair, preceded};
 use nom::Parser;
 
 const ALPHA_UNDERSCORE: &str = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJQKLMNOPQRSTUVWXYZ_";
@@ -10,10 +11,13 @@ const ALPHA_UNDERSCORE_DIGIT: &str =
     "abcdefghijklmnopqrstuvwxyzABCDEFGHIJQKLMNOPQRSTUVWXYZ_0123456789";
 
 pub fn lex(input: &str) -> LexResult<'_, Token> {
-    let (input, x) = recognize(pair(
-        is_a(ALPHA_UNDERSCORE),
-        opt(is_a(ALPHA_UNDERSCORE_DIGIT)),
-    ))
+    let (input, x) = preceded(
+        opt(whitespace::whitespace),
+        recognize(pair(
+            is_a(ALPHA_UNDERSCORE),
+            opt(is_a(ALPHA_UNDERSCORE_DIGIT)),
+        )),
+    )
     .parse(input)?;
 
     Ok((input, Token::Identifier(x.to_string())))
@@ -31,6 +35,15 @@ mod test {
             panic!("Should have been an identifier.");
         };
         assert_eq!(x, input);
+    }
+
+    #[test]
+    fn test_identifier_leading_whitespace() {
+        let (rest, output) = super::lex("   foo").expect("Failed.");
+        let super::Token::Identifier(x) = output else {
+            panic!("Should have been an identifier.");
+        };
+        assert_eq!(x, "foo");
     }
 
     #[rstest::rstest]

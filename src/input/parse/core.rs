@@ -23,14 +23,18 @@ impl Token {
 
 pub type ParserResult<'a, T> = Result<(&'a [Token], T), String>;
 
-pub trait Parser<'a, T> {
-    fn parse(&self, tokens: &'a [Token]) -> ParserResult<'a, T>;
+pub trait Parser<'a> {
+    type Output;
+
+    fn parse(&self, tokens: &'a [Token]) -> ParserResult<'a, Self::Output>;
 }
 
-impl<'a, T, F> Parser<'a, T> for F
+impl<'a, T, F> Parser<'a> for F
 where
     F: Fn(&'a [Token]) -> ParserResult<'a, T>,
 {
+    type Output = T;
+
     fn parse(&self, tokens: &'a [Token]) -> ParserResult<'a, T> {
         self(tokens)
     }

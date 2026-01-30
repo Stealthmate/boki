@@ -3,10 +3,12 @@ struct ManyParser<P> {
     parser: P,
 }
 
-impl<'a, T, P> Parser<'a, Vec<T>> for ManyParser<P>
+impl<'a, T, P> Parser<'a> for ManyParser<P>
 where
-    P: Parser<'a, T>,
+    P: Parser<'a, Output = T>,
 {
+    type Output = Vec<T>;
+
     fn parse(&self, tokens: &'a [Token]) -> ParserResult<'a, Vec<T>> {
         let mut parsed = vec![];
         let mut rest = tokens;
@@ -27,9 +29,9 @@ where
     }
 }
 
-pub fn many<'a, P1, T>(parser: P1) -> impl Parser<'a, Vec<T>>
+pub fn many<'a, P1, T>(parser: P1) -> impl Parser<'a, Output = Vec<T>>
 where
-    P1: Parser<'a, T>,
+    P1: Parser<'a, Output = T>,
 {
     ManyParser { parser }
 }
@@ -38,10 +40,12 @@ struct OptionalParser<P> {
     parser: P,
 }
 
-impl<'a, T, P> Parser<'a, Option<T>> for OptionalParser<P>
+impl<'a, T, P> Parser<'a> for OptionalParser<P>
 where
-    P: Parser<'a, T>,
+    P: Parser<'a, Output = T>,
 {
+    type Output = Option<T>;
+
     fn parse(&self, tokens: &'a [Token]) -> ParserResult<'a, Option<T>> {
         match self.parser.parse(tokens) {
             Ok((rest, x)) => Ok((rest, Some(x))),
@@ -50,9 +54,9 @@ where
     }
 }
 
-pub fn optional<'a, P1, T>(parser: P1) -> impl Parser<'a, Option<T>>
+pub fn optional<'a, P1, T>(parser: P1) -> impl Parser<'a, Output = Option<T>>
 where
-    P1: Parser<'a, T>,
+    P1: Parser<'a, Output = T>,
 {
     OptionalParser { parser }
 }

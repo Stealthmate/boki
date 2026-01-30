@@ -1,13 +1,14 @@
 use crate::input::parse::Token;
 use nom::bytes::complete::tag;
 use nom::character::complete::none_of;
-use nom::combinator::{opt, peek};
+use nom::combinator::{all_consuming, opt, peek};
 use nom::multi::many0;
 use nom::sequence::{preceded, terminated};
 use nom::Parser;
 
 mod core;
 mod identifier;
+mod timestamp;
 mod whitespace;
 
 use core::LexResult;
@@ -20,7 +21,7 @@ fn lex_indent(input: &str) -> LexResult<'_, Token> {
 
 fn lex_single_token(input: &str) -> LexResult<'_, Token> {
     let mut results = vec![];
-    for mut lexer in [identifier::lex, lex_indent] {
+    for mut lexer in [identifier::lex, timestamp::lex, lex_indent] {
         if let Ok(x) = lexer.parse(input) {
             results.push(x);
         }
@@ -38,10 +39,10 @@ fn lex_single_token(input: &str) -> LexResult<'_, Token> {
 }
 
 pub fn lex_string(input: &str) -> LexResult<'_, Vec<Token>> {
-    preceded(
+    all_consuming(preceded(
         opt(whitespace::linespace),
         many0(terminated(lex_single_token, opt(whitespace::linespace))),
-    )
+    ))
     .parse(input)
 }
 

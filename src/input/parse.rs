@@ -1,7 +1,7 @@
 use crate::input::compile::ast;
 
 mod core;
-pub use core::Token;
+pub use core::{Timestamp, Token};
 mod transaction;
 
 use core::ParserResult;

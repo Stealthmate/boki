@@ -61,6 +61,33 @@ where
     OptionalParser { parser }
 }
 
+struct PrecededParser<P1, P2> {
+    p1: P1,
+    p2: P2,
+}
+
+impl<'a, T, P1, P2> Parser<'a> for PrecededParser<P1, P2>
+where
+    P1: Parser<'a>,
+    P2: Parser<'a, Output = T>,
+{
+    type Output = T;
+
+    fn parse(&self, tokens: &'a [Token]) -> ParserResult<'a, T> {
+        let (tokens, _) = self.p1.parse(tokens)?;
+        let (tokens, v) = self.p2.parse(tokens)?;
+        Ok((tokens, v))
+    }
+}
+
+pub fn preceded<'a, P1, P2, T>(p1: P1, p2: P2) -> impl Parser<'a, Output = T>
+where
+    P1: Parser<'a>,
+    P2: Parser<'a, Output = T>,
+{
+    PrecededParser { p1, p2 }
+}
+
 #[cfg(test)]
 mod test {
     use super::super::parse_line_separator;

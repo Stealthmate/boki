@@ -56,9 +56,8 @@ impl TransactionParser {
 
     pub fn parse(tokens: &[Token]) -> core::ParserResult<'_, ast::Transaction> {
         let (tokens, header) = Self::parse_header(tokens)?;
-        let (tokens, _) = core::parse_indent(tokens)?;
-        let (tokens, postings) = core::many(Self::parse_posting).parse(tokens)?;
-        let (tokens, _) = core::parse_dedent(tokens)?;
+        let (tokens, postings) =
+            core::many(core::preceded(core::parse_indent, Self::parse_posting)).parse(tokens)?;
 
         Ok((tokens, ast::Transaction { header, postings }))
     }
@@ -156,13 +155,13 @@ mod test {
             Token::PostingSeparator,
             Token::Amount(1000),
             Token::LineSeparator,
+            Token::Indent,
             Token::Identifier("expense".to_string()),
             Token::PostingSeparator,
             Token::Identifier("JPY".to_string()),
             Token::PostingSeparator,
             Token::Amount(1000),
             Token::LineSeparator,
-            Token::Dedent,
         ];
         let (rest, result) = TransactionParser::parse(&tokens).expect("Failed.");
         assert!(rest.is_empty());

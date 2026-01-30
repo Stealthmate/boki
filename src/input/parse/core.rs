@@ -70,4 +70,4 @@ parse_token!(parse_indent, (), Token::Indent, ());
 parse_token!(parse_dedent, (), Token::Dedent, ());
 
 mod combinators;
-pub use combinators::{many, optional};
+pub use combinators::{many, optional, preceded};

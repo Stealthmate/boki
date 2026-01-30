@@ -80,13 +80,13 @@ mod test {
             Token::PostingSeparator,
             Token::Amount(1000),
             Token::LineSeparator,
+            Token::Indent,
             Token::Identifier("expense".to_string()),
             Token::PostingSeparator,
             Token::Identifier("JPY".to_string()),
             Token::PostingSeparator,
             Token::Amount(1000),
             Token::LineSeparator,
-            Token::Dedent,
         ];
         let (rest, result) = parse_tokens(&tokens).expect("Failed.");
         let node = result

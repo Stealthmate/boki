@@ -1,9 +1,9 @@
 use crate::input::parse::Token;
-use nom::bytes::complete::{is_a, tag};
-use nom::character::complete::{alpha1, alphanumeric0, none_of};
+use nom::bytes::complete::tag;
+use nom::character::complete::none_of;
 use nom::combinator::{opt, peek};
-use nom::multi::{many0, many1};
-use nom::sequence::{pair, preceded, terminated};
+use nom::multi::many0;
+use nom::sequence::{preceded, terminated};
 use nom::Parser;
 
 mod core;

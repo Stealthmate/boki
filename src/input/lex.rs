@@ -3,7 +3,7 @@ use nom::bytes::complete::tag;
 use nom::character::complete::none_of;
 use nom::combinator::{all_consuming, opt, peek};
 use nom::multi::many0;
-use nom::sequence::{preceded, terminated};
+use nom::sequence::preceded;
 use nom::Parser;
 
 mod amount;
@@ -30,8 +30,18 @@ fn lex_posting_separator(input: &str) -> LexResult<'_, Token> {
     Ok((input, Token::PostingSeparator))
 }
 
+fn lex_line_separator(input: &str) -> LexResult<'_, Token> {
+    let (input, _) = preceded(opt(whitespace::whitespace), tag("\n")).parse(input)?;
+    Ok((input, Token::LineSeparator))
+}
+
 fn lex_single_token(input: &str) -> LexResult<'_, Token> {
     let mut results = vec![];
+
+    if let Ok((rest, _)) = lex_indent(input) {
+        return Ok((rest, Token::Indent));
+    }
+
     for mut lexer in [
         identifier::lex,
         timestamp::lex,
@@ -39,6 +49,7 @@ fn lex_single_token(input: &str) -> LexResult<'_, Token> {
         lex_indent,
         lex_account_separator,
         lex_posting_separator,
+        lex_line_separator,
     ] {
         if let Ok(x) = lexer.parse(input) {
             results.push(x);
@@ -57,11 +68,31 @@ fn lex_single_token(input: &str) -> LexResult<'_, Token> {
 }
 
 pub fn lex_string(input: &str) -> LexResult<'_, Vec<Token>> {
-    all_consuming(preceded(
+    let (input, mut tokens) = all_consuming(preceded(
         opt(whitespace::linespace),
-        many0(terminated(lex_single_token, opt(whitespace::linespace))),
+        many0(lex_single_token),
     ))
-    .parse(input)
+    .parse(input)?;
+
+    if !tokens.is_empty() {
+        tokens.push(Token::LineSeparator);
+    }
+
+    let folded = tokens
+        .into_iter()
+        .fold(vec![], |mut a, t| match (a.last(), &t) {
+            (Some(Token::LineSeparator), Token::LineSeparator) => a,
+            // Indent token is only considered an indent if it follows a new line.
+            // Otherwise we treat it as whitespace and skip it altogether.
+            // TODO: this is a hack. Need to implement it properly eventually...
+            (Some(t), Token::Indent) if !matches!(t, Token::LineSeparator) => a,
+            _ => {
+                a.push(t);
+                a
+            }
+        });
+
+    Ok((input, folded))
 }
 
 #[cfg(test)]
@@ -101,7 +132,15 @@ mod test {
     fn test_2_token_with_space_inbetween() {
         let input = "\n    \nfoo  \n \n \t\t  \n\n\nbar\n\n";
         let (rest, tokens) = lex_string(input).expect("Failed.");
-        assert_eq!(tokens.len(), 2);
+        assert_eq!(
+            tokens,
+            vec![
+                Token::Identifier("foo".to_string()),
+                Token::LineSeparator,
+                Token::Identifier("bar".to_string()),
+                Token::LineSeparator,
+            ]
+        );
         assert!(rest.is_empty());
     }
 }

@@ -88,6 +88,34 @@ where
     PrecededParser { p1, p2 }
 }
 
+struct OneOfParser<'a, P> {
+    parsers: &'a [P],
+}
+
+impl<'a, T, P> Parser<'a> for OneOfParser<'_, P>
+where
+    P: Parser<'a, Output = T>,
+{
+    type Output = T;
+
+    fn parse(&self, tokens: &'a [Token]) -> ParserResult<'a, T> {
+        for p in self.parsers.iter() {
+            if let Ok(x) = p.parse(tokens) {
+                return Ok(x);
+            }
+        }
+
+        Err("All parsers failed.".to_string())
+    }
+}
+
+pub fn one_of<'a, P, T>(parsers: &'_ [P]) -> impl Parser<'a, Output = T> + '_
+where
+    P: Parser<'a, Output = T>,
+{
+    OneOfParser { parsers }
+}
+
 #[cfg(test)]
 mod test {
     use super::super::parse_line_separator;
@@ -107,5 +135,16 @@ mod test {
         let (rest, items) = many(parse_line_separator).parse(&tokens).expect("Failed.");
         assert!(items.is_empty());
         assert!(!rest.is_empty());
+    }
+
+    #[test]
+    fn test_one_of_simple() {
+        let tokens = [Token::Indent];
+        let parsers = [
+            super::super::parse_indent,
+            super::super::parse_line_separator,
+        ];
+        let (rest, items) = one_of(&parsers).parse(&tokens).expect("Failed.");
+        assert!(rest.is_empty());
     }
 }

@@ -7,6 +7,12 @@ fn compile(fp: &str) -> Result<boki::output::Journal, String> {
 
 #[rstest::rstest]
 #[case::example("001-example")]
+#[case::example("002-default-commodity")]
 fn test_successful(#[case] case: &str) {
-    compile(&format!("tests/cases/{case}.boki")).expect("Failed.");
+    let result = compile(&format!("tests/cases/{case}.boki")).expect("Failed.");
+    let expected_str = std::fs::read_to_string(&format!("tests/cases/{case}.output.json"))
+        .expect("Could not read output file.");
+    let expected: boki::output::Journal =
+        serde_json::from_str(&expected_str).expect("Could not parse output file.");
+    assert_eq!(result, expected);
 }

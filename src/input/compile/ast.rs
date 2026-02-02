@@ -19,4 +19,5 @@ pub struct Transaction {
 
 pub enum ASTNode {
     Transaction(Transaction),
+    SetAttribute(String, String),
 }

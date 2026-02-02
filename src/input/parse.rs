@@ -1,7 +1,8 @@
 use crate::input::compile::ast;
 
 mod core;
-pub use core::{Timestamp, Token};
+pub use core::{Keyword, Parser, Timestamp, Token};
+mod set_attribute;
 mod transaction;
 
 use core::ParserResult;
@@ -19,9 +20,20 @@ fn parse_comments(tokens: &[core::Token]) -> ParserResult<'_, ()> {
     Ok((rest, ()))
 }
 
-fn parse_node(tokens: &[core::Token]) -> ParserResult<'_, ast::ASTNode> {
+fn parse_transaction(tokens: &[core::Token]) -> ParserResult<'_, ast::ASTNode> {
     let (tokens, t) = transaction::TransactionParser::parse(tokens)?;
     Ok((tokens, ast::ASTNode::Transaction(t)))
+}
+
+fn parse_set_attribute(tokens: &[core::Token]) -> ParserResult<'_, ast::ASTNode> {
+    let (tokens, (name, value)) = set_attribute::SetAttributeParser::new().parse(tokens)?;
+    Ok((tokens, ast::ASTNode::SetAttribute(name, value)))
+}
+
+fn parse_node(tokens: &[core::Token]) -> ParserResult<'_, ast::ASTNode> {
+    let parsers = [parse_transaction, parse_set_attribute];
+    let result = core::one_of(&parsers).parse(tokens);
+    result
 }
 
 pub fn parse_tokens(tokens: &[core::Token]) -> ParserResult<'_, Vec<ast::ASTNode>> {

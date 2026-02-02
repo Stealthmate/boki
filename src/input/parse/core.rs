@@ -3,7 +3,13 @@ use chrono::{DateTime, FixedOffset};
 pub type Timestamp = DateTime<FixedOffset>;
 
 #[derive(Clone, Debug, PartialEq)]
+pub enum Keyword {
+    Set,
+}
+
+#[derive(Clone, Debug, PartialEq)]
 pub enum Token {
+    Keyword(Keyword),
     Timestamp(Timestamp),
     Amount(i64),
     Identifier(String),
@@ -69,5 +75,13 @@ parse_token!(parse_line_separator, (), Token::LineSeparator, ());
 parse_token!(parse_indent, (), Token::Indent, ());
 parse_token!(parse_dedent, (), Token::Dedent, ());
 
+pub fn parse_keyword<'a>(tokens: &'a [Token], kw: Keyword) -> ParserResult<'a, ()> {
+    let (rest, t) = next(tokens)?;
+    match &t {
+        Token::Keyword(x) if *x == kw => Ok((rest, ())),
+        _ => Err("Wrong token".to_string()),
+    }
+}
+
 mod combinators;
-pub use combinators::{many, optional, preceded};
+pub use combinators::{many, one_of, optional, preceded};

@@ -1,11 +1,15 @@
 use crate::output::{self};
 
 pub mod ast;
+mod set_attribute;
 mod transaction;
 
 pub fn compile_node(node: &ast::ASTNode, journal: &mut output::Journal) -> Result<(), String> {
     match node {
         ast::ASTNode::Transaction(t) => transaction::TransactionCompiler::compile(t, journal),
+        ast::ASTNode::SetAttribute(name, value) => {
+            set_attribute::SetAttributeCompiler::compile(name, value, journal)
+        }
     }
 }
 

@@ -1,7 +1,7 @@
 use crate::input::compile::ast;
 
 mod core;
-pub use core::{Parser, Timestamp, Token};
+pub use core::{Keyword, Parser, Timestamp, Token};
 mod set_attribute;
 mod transaction;
 

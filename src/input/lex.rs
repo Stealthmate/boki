@@ -1,4 +1,5 @@
-use crate::input::parse::Token;
+use crate::input::parse::{Keyword, Token};
+use nom::branch::alt;
 use nom::bytes::complete::tag;
 use nom::character::complete::none_of;
 use nom::combinator::{all_consuming, opt, peek};
@@ -35,6 +36,19 @@ fn lex_line_separator(input: &str) -> LexResult<'_, Token> {
     Ok((input, Token::LineSeparator))
 }
 
+fn lex_keyword(input: &str) -> LexResult<'_, Token> {
+    let (input, kw) = alt([tag("set")]).parse(input)?;
+
+    let the_kw = match kw {
+        "set" => Keyword::Set,
+        _ => {
+            panic!("Unhandled keyword. This is a bug.");
+        }
+    };
+
+    Ok((input, Token::Keyword(the_kw)))
+}
+
 fn lex_single_token(input: &str) -> LexResult<'_, Token> {
     let mut results = vec![];
 
@@ -43,6 +57,7 @@ fn lex_single_token(input: &str) -> LexResult<'_, Token> {
     }
 
     for mut lexer in [
+        lex_keyword,
         identifier::lex,
         timestamp::lex,
         amount::lex,
@@ -56,6 +71,7 @@ fn lex_single_token(input: &str) -> LexResult<'_, Token> {
         }
     }
 
+    // Note: we rely on preserving the initial order here.
     results.sort_by(|a, b| a.0.len().cmp(&b.0.len()));
     let Some(result) = results.first().cloned() else {
         return Err(nom::Err::Error(nom::error::make_error(

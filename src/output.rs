@@ -28,7 +28,7 @@ pub type TransactionTimestamp = chrono::DateTime<chrono::FixedOffset>;
 #[serde(deny_unknown_fields)]
 pub struct TransactionHeader {
     pub timestamp: TransactionTimestamp,
-    pub attributes: serde_yaml::Value,
+    pub attributes: serde_yaml::Mapping,
 }
 
 #[derive(Clone, serde::Deserialize, Debug, PartialEq)]

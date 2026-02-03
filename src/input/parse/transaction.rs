@@ -13,7 +13,7 @@ impl TransactionParser {
             tokens,
             ast::TransactionHeader {
                 timestamp,
-                attributes: serde_yaml::Value::Mapping(serde_yaml::Mapping::default()),
+                attributes: serde_yaml::Mapping::default(),
             },
         ))
     }

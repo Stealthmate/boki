@@ -133,7 +133,7 @@ mod test {
             header: ast::TransactionHeader {
                 timestamp: chrono::DateTime::parse_from_rfc3339("2026-01-02T03:04:05.000+09:00")
                     .unwrap(),
-                attributes: serde_yaml::Value::Mapping(serde_yaml::Mapping::default()),
+                attributes: serde_yaml::Mapping::default(),
             },
             postings: vec![
                 ast::Posting {
@@ -195,13 +195,29 @@ mod test {
         assert_eq!(j_t.postings[0].amount, 1000);
     }
 
+    #[test]
+    fn test_attributes_are_copied() {
+        let mut t = sample_transaction();
+        t.header.attributes = serde_yaml::Mapping::default();
+        t.header.attributes.insert("foo".into(), "bar".into());
+
+        let mut journal = output::Journal::default();
+
+        let result = compile_transaction(&t, &mut journal).expect("Failed.");
+
+        let j_t = journal.transactions.first().expect("Failed.");
+        let attrs = &j_t.header.attributes;
+        assert!(attrs.contains_key("foo"));
+        assert_eq!(attrs.get("foo").expect("Failed."), "bar");
+    }
+
     #[rstest::rstest]
     #[case::with_0_postings(
         ast::Transaction {
             header: ast::TransactionHeader {
                 timestamp: chrono::DateTime::parse_from_rfc3339("2026-01-02T03:04:05.000+09:00")
                     .unwrap(),
-                attributes: serde_yaml::Value::Mapping(serde_yaml::Mapping::default())
+                attributes: serde_yaml::Mapping::default(),
             },
             postings: vec![],
         }
@@ -211,7 +227,7 @@ mod test {
             header: ast::TransactionHeader {
                 timestamp: chrono::DateTime::parse_from_rfc3339("2026-01-02T03:04:05.000+09:00")
                     .unwrap(),
-                attributes: serde_yaml::Value::Mapping(serde_yaml::Mapping::default())
+                attributes: serde_yaml::Mapping::default(),
             },
             postings: vec![
                 ast::Posting {
@@ -227,7 +243,7 @@ mod test {
             header: ast::TransactionHeader {
                 timestamp: chrono::DateTime::parse_from_rfc3339("2026-01-02T03:04:05.000+09:00")
                     .unwrap(),
-                attributes: serde_yaml::Value::Mapping(serde_yaml::Mapping::default())
+                attributes: serde_yaml::Mapping::default(),
             },
             postings: vec![
                 ast::Posting {
@@ -247,7 +263,7 @@ mod test {
             header: ast::TransactionHeader {
                 timestamp: chrono::DateTime::parse_from_rfc3339("2026-01-02T03:04:05.000+09:00")
                     .unwrap(),
-                attributes: serde_yaml::Value::Mapping(serde_yaml::Mapping::default())
+                attributes: serde_yaml::Mapping::default(),
             },
             postings: vec![
                 ast::Posting {
@@ -267,7 +283,7 @@ mod test {
             header: ast::TransactionHeader {
                 timestamp: chrono::DateTime::parse_from_rfc3339("2026-01-02T03:04:05.000+09:00")
                     .unwrap(),
-                attributes: serde_yaml::Value::Mapping(serde_yaml::Mapping::default())
+                attributes: serde_yaml::Mapping::default(),
             },
             postings: vec![
                 ast::Posting {
@@ -292,7 +308,7 @@ mod test {
             header: ast::TransactionHeader {
                 timestamp: chrono::DateTime::parse_from_rfc3339("2026-01-02T03:04:05.000+09:00")
                     .unwrap(),
-                attributes: serde_yaml::Value::Mapping(serde_yaml::Mapping::default())
+                attributes: serde_yaml::Mapping::default(),
             },
             postings: vec![
                 ast::Posting {

@@ -4,7 +4,7 @@ pub type Timestamp = DateTime<FixedOffset>;
 
 pub struct TransactionHeader {
     pub timestamp: Timestamp,
-    pub attributes: serde_yaml::Value,
+    pub attributes: serde_yaml::Mapping,
 }
 
 pub struct Posting {

@@ -1,0 +1,6 @@
+2025-01-01
+  ---
+  foo: bar
+  ---
+  assets/cce/cash;        JPY;          -1,000
+  expense;                JPY;           1,000

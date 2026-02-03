@@ -1,10 +1,10 @@
 use crate::input::parse::{Keyword, Token};
 use nom::branch::alt;
-use nom::bytes::complete::tag;
+use nom::bytes::complete::{tag, take_until};
 use nom::character::complete::none_of;
 use nom::combinator::{all_consuming, opt, peek};
 use nom::multi::many0;
-use nom::sequence::preceded;
+use nom::sequence::{delimited, preceded};
 use nom::Parser;
 
 mod amount;
@@ -49,8 +49,27 @@ fn lex_keyword(input: &str) -> LexResult<'_, Token> {
     Ok((input, Token::Keyword(the_kw)))
 }
 
+fn lex_yaml_matter(input: &str) -> LexResult<'_, Token> {
+    let start = "  ---\n";
+    let end = "\n  ---";
+    let (input, yamlstr) = delimited(tag(start), take_until(end), tag(end)).parse(input)?;
+    let stripped = yamlstr.replace("\n  ", "\n");
+    println!("stripped:\n{stripped}");
+    let Ok(parsed) = serde_yaml::from_str(&stripped) else {
+        return Err(nom::Err::Error(nom::error::make_error(
+            input,
+            nom::error::ErrorKind::IsNot,
+        )));
+    };
+    Ok((input, Token::YamlMatter(parsed)))
+}
+
 fn lex_single_token(input: &str) -> LexResult<'_, Token> {
     let mut results = vec![];
+
+    if let Ok((rest, t)) = lex_yaml_matter(input) {
+        return Ok((rest, t));
+    }
 
     if let Ok((rest, _)) = lex_indent(input) {
         return Ok((rest, Token::Indent));
@@ -156,6 +175,19 @@ mod test {
                 Token::Identifier("bar".to_string()),
                 Token::LineSeparator,
             ]
+        );
+        assert!(rest.is_empty());
+    }
+
+    #[test]
+    fn test_yaml_matter() {
+        let input = "  ---\n  foo: bar\n  ---";
+        let (rest, tokens) = lex_string(input).expect("Failed.");
+        let mapping: serde_yaml::Mapping =
+            serde_yaml::from_str("foo: bar").expect("Invalid test case.");
+        assert_eq!(
+            tokens,
+            vec![Token::YamlMatter(mapping), Token::LineSeparator,]
         );
         assert!(rest.is_empty());
     }

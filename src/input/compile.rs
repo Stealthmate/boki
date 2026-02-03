@@ -32,6 +32,7 @@ mod test {
             header: ast::TransactionHeader {
                 timestamp: chrono::DateTime::parse_from_rfc3339("2026-01-02T03:04:05.000+09:00")
                     .unwrap(),
+                attributes: serde_yaml::Mapping::default(),
             },
             postings: vec![
                 ast::Posting {

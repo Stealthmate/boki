@@ -17,6 +17,7 @@ pub enum Token {
     PostingSeparator,
     LineSeparator,
     Comment(String),
+    YamlMatter(serde_yaml::Mapping),
     Indent,
     Dedent,
 }
@@ -72,6 +73,12 @@ parse_token!(parse_identifier, String, Token::Identifier(x), x);
 parse_token!(parse_account_separator, (), Token::AccountSeparator, ());
 parse_token!(parse_posting_separator, (), Token::PostingSeparator, ());
 parse_token!(parse_line_separator, (), Token::LineSeparator, ());
+parse_token!(
+    parse_yaml_matter,
+    serde_yaml::Mapping,
+    Token::YamlMatter(x),
+    x
+);
 parse_token!(parse_indent, (), Token::Indent, ());
 parse_token!(parse_dedent, (), Token::Dedent, ());
 
@@ -84,4 +91,4 @@ pub fn parse_keyword<'a>(tokens: &'a [Token], kw: Keyword) -> ParserResult<'a, (
 }
 
 mod combinators;
-pub use combinators::{many, one_of, optional, preceded};
+pub use combinators::{many, one_of, optional, preceded, terminated};

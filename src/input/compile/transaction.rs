@@ -103,6 +103,7 @@ impl TransactionCompiler {
         let out_t = output::Transaction {
             header: output::TransactionHeader {
                 timestamp: t.header.timestamp,
+                attributes: t.header.attributes.clone(),
             },
             postings,
         };
@@ -132,6 +133,7 @@ mod test {
             header: ast::TransactionHeader {
                 timestamp: chrono::DateTime::parse_from_rfc3339("2026-01-02T03:04:05.000+09:00")
                     .unwrap(),
+                attributes: serde_yaml::Value::Mapping(serde_yaml::Mapping::default()),
             },
             postings: vec![
                 ast::Posting {
@@ -199,6 +201,7 @@ mod test {
             header: ast::TransactionHeader {
                 timestamp: chrono::DateTime::parse_from_rfc3339("2026-01-02T03:04:05.000+09:00")
                     .unwrap(),
+                attributes: serde_yaml::Value::Mapping(serde_yaml::Mapping::default())
             },
             postings: vec![],
         }
@@ -208,6 +211,7 @@ mod test {
             header: ast::TransactionHeader {
                 timestamp: chrono::DateTime::parse_from_rfc3339("2026-01-02T03:04:05.000+09:00")
                     .unwrap(),
+                attributes: serde_yaml::Value::Mapping(serde_yaml::Mapping::default())
             },
             postings: vec![
                 ast::Posting {
@@ -223,6 +227,7 @@ mod test {
             header: ast::TransactionHeader {
                 timestamp: chrono::DateTime::parse_from_rfc3339("2026-01-02T03:04:05.000+09:00")
                     .unwrap(),
+                attributes: serde_yaml::Value::Mapping(serde_yaml::Mapping::default())
             },
             postings: vec![
                 ast::Posting {
@@ -242,6 +247,7 @@ mod test {
             header: ast::TransactionHeader {
                 timestamp: chrono::DateTime::parse_from_rfc3339("2026-01-02T03:04:05.000+09:00")
                     .unwrap(),
+                attributes: serde_yaml::Value::Mapping(serde_yaml::Mapping::default())
             },
             postings: vec![
                 ast::Posting {
@@ -261,6 +267,7 @@ mod test {
             header: ast::TransactionHeader {
                 timestamp: chrono::DateTime::parse_from_rfc3339("2026-01-02T03:04:05.000+09:00")
                     .unwrap(),
+                attributes: serde_yaml::Value::Mapping(serde_yaml::Mapping::default())
             },
             postings: vec![
                 ast::Posting {
@@ -285,6 +292,7 @@ mod test {
             header: ast::TransactionHeader {
                 timestamp: chrono::DateTime::parse_from_rfc3339("2026-01-02T03:04:05.000+09:00")
                     .unwrap(),
+                attributes: serde_yaml::Value::Mapping(serde_yaml::Mapping::default())
             },
             postings: vec![
                 ast::Posting {

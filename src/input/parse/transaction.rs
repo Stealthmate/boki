@@ -9,7 +9,13 @@ impl TransactionParser {
     fn parse_header(tokens: &[Token]) -> core::ParserResult<'_, ast::TransactionHeader> {
         let (tokens, timestamp) = core::parse_timestamp(tokens)?;
         let (tokens, _) = core::parse_line_separator(tokens)?;
-        Ok((tokens, ast::TransactionHeader { timestamp }))
+        Ok((
+            tokens,
+            ast::TransactionHeader {
+                timestamp,
+                attributes: serde_yaml::Value::Mapping(serde_yaml::Mapping::default()),
+            },
+        ))
     }
 
     fn parse_subaccount(tokens: &[Token]) -> core::ParserResult<'_, String> {

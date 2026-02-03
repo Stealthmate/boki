@@ -6,14 +6,23 @@ use crate::input::parse::core::Token;
 pub struct TransactionParser;
 
 impl TransactionParser {
+    fn parse_transaction_attributes(
+        tokens: &[Token],
+    ) -> core::ParserResult<'_, serde_yaml::Mapping> {
+        core::terminated(core::parse_yaml_matter, core::parse_line_separator).parse(tokens)
+    }
+
     fn parse_header(tokens: &[Token]) -> core::ParserResult<'_, ast::TransactionHeader> {
         let (tokens, timestamp) = core::parse_timestamp(tokens)?;
         let (tokens, _) = core::parse_line_separator(tokens)?;
+        let (tokens, attributes) = core::optional(Self::parse_transaction_attributes)
+            .parse(tokens)
+            .map(|(i, x)| (i, x.unwrap_or_default()))?;
         Ok((
             tokens,
             ast::TransactionHeader {
                 timestamp,
-                attributes: serde_yaml::Mapping::default(),
+                attributes,
             },
         ))
     }
@@ -82,6 +91,20 @@ mod test {
     fn test_header_simple() {
         let ts = sample_timestamp();
         let tokens = [Token::Timestamp(ts), Token::LineSeparator];
+        let (rest, result) = TransactionParser::parse_header(&tokens).expect("Failed.");
+        assert_eq!(result.timestamp, sample_timestamp());
+        assert!(rest.is_empty());
+    }
+
+    #[test]
+    fn test_header_attributes() {
+        let ts = sample_timestamp();
+        let tokens = [
+            Token::Timestamp(ts),
+            Token::LineSeparator,
+            Token::YamlMatter(serde_yaml::Mapping::default()),
+            Token::LineSeparator,
+        ];
         let (rest, result) = TransactionParser::parse_header(&tokens).expect("Failed.");
         assert_eq!(result.timestamp, sample_timestamp());
         assert!(rest.is_empty());

@@ -24,7 +24,7 @@ fn main() {
     let cli = Cli::parse();
 
     let source = std::fs::read_to_string(cli.file).expect("Failed to read journal.");
-    let journal = boki::compile_string(&source).expect("Failed to compile journal.");
+    let journal = boki::input::compile_string(&source).expect("Failed to compile journal.");
 
     match &cli.command {
         Commands::Export { output } => {

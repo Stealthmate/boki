@@ -1,9 +1,14 @@
+use crate::input::compile::ast::CompilationResult;
 use crate::output;
 
 pub struct SetAttributeCompiler;
 
 impl SetAttributeCompiler {
-    pub fn compile(name: &str, value: &str, journal: &mut output::Journal) -> Result<(), String> {
+    pub fn compile(
+        name: &str,
+        value: &str,
+        journal: &mut output::Journal,
+    ) -> CompilationResult<()> {
         if name == "default_commodity" {
             journal.header.default_commodity = value.to_string();
         }

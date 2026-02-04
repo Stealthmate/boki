@@ -54,7 +54,6 @@ fn lex_yaml_matter(input: &str) -> LexResult<'_, Token> {
     let end = "\n  ---";
     let (input, yamlstr) = delimited(tag(start), take_until(end), tag(end)).parse(input)?;
     let stripped = yamlstr.replace("\n  ", "\n");
-    println!("stripped:\n{stripped}");
     let Ok(parsed) = serde_yaml::from_str(&stripped) else {
         return Err(nom::Err::Error(nom::error::make_error(
             input,

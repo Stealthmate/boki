@@ -7,7 +7,6 @@ mod parse;
 
 pub fn compile_string(input: &str) -> Result<crate::output::Journal, String> {
     let (_, tokens) = lex::lex_string(input).map_err(|e| e.to_string())?;
-    println!("{tokens:#?}");
     let (_, ast) = parse::parse_tokens(&tokens)?;
     compile::compile(ast)
 }

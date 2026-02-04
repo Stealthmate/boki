@@ -1,10 +1,10 @@
-#[derive(Clone, serde::Deserialize, Debug, PartialEq)]
+#[derive(Clone, serde::Deserialize, Debug, PartialEq, serde::Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct JournalHeader {
     pub default_commodity: String,
 }
 
-#[derive(Clone, serde::Deserialize, Debug, PartialEq)]
+#[derive(Clone, serde::Deserialize, Debug, PartialEq, serde::Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct Posting {
     pub account: String,
@@ -24,21 +24,21 @@ impl Default for Posting {
 
 pub type TransactionTimestamp = chrono::DateTime<chrono::FixedOffset>;
 
-#[derive(Clone, serde::Deserialize, Debug, PartialEq)]
+#[derive(Clone, serde::Deserialize, Debug, PartialEq, serde::Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct TransactionHeader {
     pub timestamp: TransactionTimestamp,
     pub attributes: serde_yaml::Mapping,
 }
 
-#[derive(Clone, serde::Deserialize, Debug, PartialEq)]
+#[derive(Clone, serde::Deserialize, Debug, PartialEq, serde::Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct Transaction {
     pub header: TransactionHeader,
     pub postings: Vec<Posting>,
 }
 
-#[derive(Clone, serde::Deserialize, Debug, PartialEq)]
+#[derive(Clone, serde::Deserialize, Debug, PartialEq, serde::Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct Journal {
     pub header: JournalHeader,

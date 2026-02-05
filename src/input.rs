@@ -1,12 +1,35 @@
 #![allow(dead_code)]
 #![allow(unused_variables)]
-
+use crate::utils::indent_string;
 mod compile;
 mod lex;
 mod parse;
 
-pub fn compile_string(input: &str) -> Result<crate::output::Journal, String> {
-    let (_, tokens) = lex::lex_string(input).map_err(|e| e.to_string())?;
-    let (_, ast) = parse::parse_tokens(&tokens)?;
-    compile::compile(ast)
+#[derive(Debug)]
+pub enum InputError {
+    LexError(String),
+    ParseError(String),
+    CompileError(compile::ast::CompilationError),
+}
+
+impl std::fmt::Display for InputError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match &self {
+            InputError::LexError(e) => write!(f, "Lex Error:\n  {}", indent_string(e))?,
+            InputError::ParseError(e) => write!(f, "Parse Error:\n  {}", indent_string(e))?,
+            InputError::CompileError(e) => {
+                write!(f, "Compile Error:\n  {}", indent_string(&format!("{e:#?}")))?
+            }
+        };
+
+        Ok(())
+    }
+}
+
+pub type InputResult<T> = Result<T, InputError>;
+
+pub fn compile_string(input: &str) -> InputResult<crate::output::Journal> {
+    let (_, tokens) = lex::lex_string(input).map_err(|e| InputError::LexError(e.to_string()))?;
+    let (_, ast) = parse::parse_tokens(&tokens).map_err(InputError::ParseError)?;
+    compile::compile(ast).map_err(InputError::CompileError)
 }

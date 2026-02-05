@@ -4,7 +4,10 @@ pub mod ast;
 mod set_attribute;
 mod transaction;
 
-pub fn compile_node(node: &ast::ASTNode, journal: &mut output::Journal) -> Result<(), String> {
+pub fn compile_node(
+    node: &ast::ASTNode,
+    journal: &mut output::Journal,
+) -> ast::CompilationResult<()> {
     match node {
         ast::ASTNode::Transaction(t) => transaction::TransactionCompiler::compile(t, journal),
         ast::ASTNode::SetAttribute(name, value) => {
@@ -13,7 +16,7 @@ pub fn compile_node(node: &ast::ASTNode, journal: &mut output::Journal) -> Resul
     }
 }
 
-pub fn compile(nodes: Vec<ast::ASTNode>) -> Result<output::Journal, String> {
+pub fn compile(nodes: Vec<ast::ASTNode>) -> ast::CompilationResult<output::Journal> {
     let mut journal = output::Journal::default();
 
     for node in &nodes {

@@ -1,4 +1,4 @@
-use super::ast;
+use crate::input::compile::ast;
 use crate::output;
 use std::collections::HashMap;
 
@@ -21,12 +21,14 @@ impl TransactionCompiler {
     fn validate_postings(
         postings: &[ast::Posting],
         journal: &output::Journal,
-    ) -> Result<(Vec<output::Posting>, Option<usize>), String> {
+    ) -> ast::CompilationResult<(Vec<output::Posting>, Option<usize>)> {
         use std::iter::repeat;
 
         let n_postings = postings.len();
         if n_postings < 2 {
-            return Err("Must have 2 or more postings.".to_string());
+            return Err(ast::CompilationError::from_str(
+                "Must have 2 or more postings.",
+            ));
         }
 
         let mut out_postings: Vec<output::Posting> = repeat(output::Posting::default())
@@ -43,7 +45,9 @@ impl TransactionCompiler {
             p_out.amount = p_in.amount.unwrap_or(0);
             if p_in.amount.is_none() {
                 if i_empty_amount.is_some() {
-                    return Err("Only a single posting can have an empty amount.".to_string());
+                    return Err(ast::CompilationError::from_str(
+                        "Only a single posting can have an empty amount.",
+                    ));
                 }
                 i_empty_amount = Some(i);
             }
@@ -62,27 +66,34 @@ impl TransactionCompiler {
             .collect()
     }
 
-    fn ensure_transaction_is_balanced(t: &output::Transaction) -> Result<(), String> {
+    fn ensure_transaction_is_balanced(t: &output::Transaction) -> ast::CompilationResult<()> {
         if Self::compute_balances(&t.postings)
             .iter()
             .any(|(_, a)| *a != 0)
         {
-            return Err("Unbalanced transaction.".to_string());
+            return Err(ast::CompilationError::from_str("Unbalanced transaction."));
         }
 
         Ok(())
     }
 
-    pub fn compile(t: &ast::Transaction, journal: &mut output::Journal) -> Result<(), String> {
+    pub fn compile(
+        t: &ast::Transaction,
+        journal: &mut output::Journal,
+    ) -> ast::CompilationResult<()> {
         let n_postings = t.postings.len();
         if n_postings < 2 {
-            return Err("Must have 2 or more postings.".to_string());
+            return Err(ast::CompilationError::from_str(
+                "Must have 2 or more postings.",
+            ));
         }
 
         let (mut postings, i_empty_amount) = Self::validate_postings(&t.postings, journal)?;
         let unbalanced_commodities = Self::find_unbalanced_commodities(&postings);
         if unbalanced_commodities.len() > 1 {
-            return Err("Only a single commodity can be unbalanced.".to_string());
+            return Err(ast::CompilationError::from_str(
+                "Only a single commodity can be unbalanced.",
+            ));
         }
 
         let unbalanced_commodity = unbalanced_commodities.first().cloned();
@@ -92,9 +103,9 @@ impl TransactionCompiler {
             let (commodity, amount) =
                 unbalanced_commodity.unwrap_or((posting.commodity.clone(), 0));
             if posting.commodity != commodity {
-                return Err(
-                    "Empty posting commodity is different than unbalanced commodity.".to_string(),
-                );
+                return Err(ast::CompilationError::from_str(
+                    "Empty posting commodity is different than unbalanced commodity.",
+                ));
             }
 
             posting.amount = -amount;
@@ -124,7 +135,7 @@ mod test {
     fn compile_transaction(
         t: &ast::Transaction,
         journal: &mut output::Journal,
-    ) -> Result<(), String> {
+    ) -> ast::CompilationResult<()> {
         super::TransactionCompiler::compile(&t, journal)
     }
 

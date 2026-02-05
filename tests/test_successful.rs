@@ -1,8 +1,8 @@
 use boki;
 
-fn compile(fp: &str) -> Result<boki::output::Journal, String> {
+fn compile(fp: &str) -> boki::input::InputResult<boki::output::Journal> {
     let content = std::fs::read_to_string(fp).expect("Could not open file.");
-    boki::compile_string(&content)
+    boki::input::compile_string(&content)
 }
 
 #[rstest::rstest]

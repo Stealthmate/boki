@@ -22,3 +22,16 @@ pub enum ASTNode {
     Transaction(Transaction),
     SetAttribute(String, String),
 }
+
+#[derive(Debug)]
+pub enum CompilationError {
+    GeneralError(String),
+}
+
+impl CompilationError {
+    pub fn from_str(s: &str) -> Self {
+        CompilationError::GeneralError(s.to_string())
+    }
+}
+
+pub type CompilationResult<T> = Result<T, CompilationError>;

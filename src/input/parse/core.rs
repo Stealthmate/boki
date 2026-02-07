@@ -42,7 +42,20 @@ impl Token {
     }
 }
 
-pub type ParserResult<'a, T> = Result<(&'a [Token], T), String>;
+#[derive(Debug)]
+pub struct ParserError {
+    pub message: String,
+}
+
+impl ParserError {
+    pub fn from_str(s: &str) -> Self {
+        ParserError {
+            message: s.to_string(),
+        }
+    }
+}
+
+pub type ParserResult<'a, T> = Result<(&'a [Token], T), ParserError>;
 
 pub trait Parser<'a> {
     type Output;
@@ -63,7 +76,7 @@ where
 
 pub fn next(tokens: &[Token]) -> ParserResult<'_, Token> {
     match tokens.first() {
-        None => Err("Unexpected EOF.".to_string()),
+        None => Err(ParserError::from_str("Unexpected EOF.")),
         Some(x) => Ok((&tokens[1..], x.clone())),
     }
 }
@@ -73,7 +86,11 @@ macro_rules! parse_token {
         pub fn $name(tokens: &[Token]) -> ParserResult<'_, $return_type> {
             let (rest, t) = next(tokens)?;
             let $expansion = t else {
-                return Err(format!("Expected {} but found {}", $error_name, t.name()).to_string());
+                return Err(ParserError::from_str(&format!(
+                    "Expected {} but found {}",
+                    $error_name,
+                    t.name()
+                )));
             };
 
             Ok((rest, $return_value))
@@ -131,10 +148,10 @@ pub fn parse_keyword<'a>(tokens: &'a [Token], kw: Keyword) -> ParserResult<'a, (
     let (rest, t) = next(tokens)?;
     match &t {
         Token::Keyword(x) if *x == kw => Ok((rest, ())),
-        _ => Err(format!(
+        _ => Err(ParserError::from_str(&format!(
             "Expected {TOKEN_NAME_KEYWORD} but found {}",
             t.name()
-        )),
+        ))),
     }
 }
 

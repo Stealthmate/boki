@@ -8,7 +8,7 @@ mod parse;
 #[derive(Debug)]
 pub enum InputError {
     LexError(String),
-    ParseError(String),
+    ParseError(parse::ParserError),
     CompileError(compile::ast::CompilationError),
 }
 
@@ -16,7 +16,9 @@ impl std::fmt::Display for InputError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match &self {
             InputError::LexError(e) => write!(f, "Lex Error:\n  {}", indent_string(e))?,
-            InputError::ParseError(e) => write!(f, "Parse Error:\n  {}", indent_string(e))?,
+            InputError::ParseError(e) => {
+                write!(f, "Parse Error:\n  {}", indent_string(&e.message))?
+            }
             InputError::CompileError(e) => {
                 write!(f, "Compile Error:\n  {}", indent_string(&format!("{e:#?}")))?
             }

@@ -49,7 +49,7 @@ impl TransactionParser {
 
     fn parse_posting(tokens: &[Token]) -> core::ParserResult<'_, ast::Posting> {
         if tokens.is_empty() {
-            return Err("No more tokens.".to_string());
+            return Err(core::ParserError::from_str("No more tokens."));
         }
 
         let (tokens, account) = Self::parse_account(tokens)?;

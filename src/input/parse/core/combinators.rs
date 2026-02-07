@@ -1,4 +1,4 @@
-use super::{Parser, ParserResult, Token};
+use super::{Parser, ParserError, ParserResult, Token};
 use crate::utils;
 struct ManyParser<P> {
     parser: P,
@@ -142,11 +142,13 @@ where
 
         let mut error_msg: String = "All parsers failed.".to_string();
         for error in &errors {
-            error_msg +=
-                &utils::indent_string(&format!("\nError:\n  {}", utils::indent_string(error)));
+            error_msg += &utils::indent_string(&format!(
+                "\nError:\n  {}",
+                utils::indent_string(&error.message)
+            ));
         }
 
-        Err(error_msg)
+        Err(ParserError::from_str(&error_msg))
     }
 }
 
@@ -171,7 +173,10 @@ where
     fn parse(&self, tokens: &'a [Token]) -> ParserResult<'a, T> {
         match self.parser.parse(tokens) {
             Ok(x) => Ok(x),
-            Err(e) => Err(format!("{}: {}", self.context, e)),
+            Err(e) => Err(ParserError::from_str(&format!(
+                "{}: {}",
+                self.context, e.message
+            ))),
         }
     }
 }

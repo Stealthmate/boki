@@ -1,4 +1,5 @@
 use super::{Parser, ParserResult, Token};
+use crate::utils;
 struct ManyParser<P> {
     parser: P,
 }
@@ -126,13 +127,26 @@ where
     type Output = T;
 
     fn parse(&self, tokens: &'a [Token]) -> ParserResult<'a, T> {
+        let mut errors = vec![];
+
         for p in self.parsers.iter() {
-            if let Ok(x) = p.parse(tokens) {
-                return Ok(x);
+            match p.parse(tokens) {
+                Ok(x) => {
+                    return Ok(x);
+                }
+                Err(e) => {
+                    errors.push(e);
+                }
             }
         }
 
-        Err("All parsers failed.".to_string())
+        let mut error_msg: String = "All parsers failed.".to_string();
+        for error in &errors {
+            error_msg +=
+                &utils::indent_string(&format!("\nError:\n  {}", utils::indent_string(error)));
+        }
+
+        Err(error_msg)
     }
 }
 
@@ -141,6 +155,35 @@ where
     P: Parser<'a, Output = T>,
 {
     OneOfParser { parsers }
+}
+
+struct WithContextParser<P> {
+    context: String,
+    parser: P,
+}
+
+impl<'a, T, P> Parser<'a> for WithContextParser<P>
+where
+    P: Parser<'a, Output = T>,
+{
+    type Output = T;
+
+    fn parse(&self, tokens: &'a [Token]) -> ParserResult<'a, T> {
+        match self.parser.parse(tokens) {
+            Ok(x) => Ok(x),
+            Err(e) => Err(format!("{}: {}", self.context, e)),
+        }
+    }
+}
+
+pub fn with_context<'a, P, T>(context: &str, parser: P) -> impl Parser<'a, Output = T>
+where
+    P: Parser<'a, Output = T>,
+{
+    WithContextParser {
+        context: context.to_string(),
+        parser,
+    }
 }
 
 #[cfg(test)]

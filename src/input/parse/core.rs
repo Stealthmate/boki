@@ -44,12 +44,14 @@ impl Token {
 
 #[derive(Debug)]
 pub struct ParserError {
+    pub location: usize,
     pub message: String,
 }
 
 impl ParserError {
     pub fn from_str(s: &str) -> Self {
         ParserError {
+            location: 0,
             message: s.to_string(),
         }
     }

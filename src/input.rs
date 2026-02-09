@@ -1,5 +1,6 @@
 #![allow(dead_code)]
 #![allow(unused_variables)]
+use crate::output;
 use crate::utils::indent_string;
 
 mod compile;
@@ -30,8 +31,18 @@ impl std::fmt::Display for InputError {
 
 pub type InputResult<T> = Result<T, InputError>;
 
+pub fn compile(nodes: Vec<contracts::ast::ASTNode>) -> compile::CompilationResult<output::Journal> {
+    let mut journal = output::Journal::default();
+
+    for node in &nodes {
+        compile::compile_node(node, &mut journal)?;
+    }
+
+    Ok(journal)
+}
+
 pub fn compile_string(input: &str) -> InputResult<crate::output::Journal> {
     let (_, tokens) = lex::lex_string(input).map_err(|e| InputError::LexError(e.to_string()))?;
     let (_, ast) = parse::parse_tokens(&tokens).map_err(InputError::ParseError)?;
-    compile::compile(ast).map_err(InputError::CompileError)
+    compile(ast).map_err(InputError::CompileError)
 }

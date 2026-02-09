@@ -1,3 +1,13 @@
+//! The compiler stage.
+//!
+//! This module is responsible for processing a list of AST nodes
+//! and producing an output Journal.
+//!
+//! The compiler depends only on the AST, and thus does not assume _anything_
+//! with regards to the way the AST gets produced. In particular, the compiler does not care
+//! if parsing occurs in a streaming or complete fashion, nor does it consider
+//! how to handle errors which happen while generating the AST.
+
 use crate::input::contracts::ast;
 use crate::output::{self};
 
@@ -24,16 +34,6 @@ pub fn compile_node(node: &ast::ASTNode, journal: &mut output::Journal) -> Compi
             set_attribute::SetAttributeCompiler::compile(name, value, journal)
         }
     }
-}
-
-pub fn compile(nodes: Vec<ast::ASTNode>) -> CompilationResult<output::Journal> {
-    let mut journal = output::Journal::default();
-
-    for node in &nodes {
-        compile_node(node, &mut journal)?;
-    }
-
-    Ok(journal)
 }
 
 #[cfg(test)]
@@ -64,8 +64,9 @@ mod test {
 
     #[test]
     fn test_compile_simple() {
-        let ast = vec![ast::ASTNode::Transaction(sample_transaction())];
-        let result = compile(ast).expect("Compilation failed.");
+        let node = ast::ASTNode::Transaction(sample_transaction());
+        let mut journal = output::Journal::default();
+        let result = compile_node(&node, &mut journal).expect("Compilation failed.");
     }
 
     #[test]

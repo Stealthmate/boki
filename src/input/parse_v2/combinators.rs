@@ -132,17 +132,24 @@ where
 
     fn parse(&self, scanner: &mut TokenScanner) -> ParserResult<T> {
         let i = scanner.tell();
+        let mut errors = vec![];
         for p in self.parsers.iter() {
             scanner.seek(i)?;
 
-            if let Ok(x) = p.parse(scanner) {
-                return Ok(x);
+            match p.parse(scanner) {
+                Ok(x) => return Ok(x),
+                Err(e) => {
+                    errors.push(e);
+                }
             }
         }
 
         Err(ParserError {
             location: i,
-            details: super::core::ParserErrorDetails::Other("All parsers failed.".to_string()),
+            details: super::core::ParserErrorDetails::BranchingError(
+                "All parsers failed.".to_string(),
+                errors,
+            ),
         })
     }
 }

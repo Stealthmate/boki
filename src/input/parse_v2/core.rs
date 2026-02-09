@@ -2,6 +2,7 @@ use crate::input::contracts::tokens;
 
 #[derive(Debug)]
 pub enum ParserErrorDetails {
+    BranchingError(String, Vec<ParserError>),
     Nested(String, Box<ParserError>),
     ExpectedSomethingElse(String, tokens::Token),
     IllegalImplementation(String),

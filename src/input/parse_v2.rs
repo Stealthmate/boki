@@ -17,6 +17,7 @@ use crate::input::contracts::tokens;
 mod basic;
 mod combinators;
 pub mod core;
+mod set_attributes;
 mod transaction;
 
 use core::{Parser, ParserResult, TokenScanner};
@@ -38,7 +39,9 @@ fn parse_transaction(scanner: &mut TokenScanner) -> ParserResult<ast::ASTNode> {
 }
 
 fn parse_set_attribute(scanner: &mut TokenScanner) -> ParserResult<ast::ASTNode> {
-    todo!()
+    set_attributes::SetAttributeParser::new()
+        .parse(scanner)
+        .map(|(x, y)| ast::ASTNode::SetAttribute(x, y))
 }
 
 fn parse_a_node(scanner: &mut TokenScanner) -> ParserResult<ast::ASTNode> {

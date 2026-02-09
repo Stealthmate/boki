@@ -2,8 +2,10 @@ use crate::input::contracts::tokens;
 
 #[derive(Debug)]
 pub enum ParserErrorDetails {
+    IllegalImplementation(String),
     /// We consumed all tokens without seeing an EOF token.
     Incomplete,
+    Other(String),
 }
 
 /// The main error type for the parser stage.
@@ -37,8 +39,32 @@ impl TokenScanner {
     pub fn tell(&self) -> usize {
         self.offset + self.location
     }
-    pub fn seek(&mut self, i: usize) {
-        todo!()
+    pub fn seek(&mut self, i: usize) -> ParserResult<()> {
+        let mkerr = |x: String| ParserError {
+            location: self.location,
+            details: ParserErrorDetails::IllegalImplementation(x),
+        };
+        if i < self.offset {
+            return Err(mkerr(format!(
+                "This should never happen! Attempted to seek to {i} even though offset is {}.",
+                self.offset
+            )));
+        }
+        if i >= (self.offset + self.tokens.len()) {
+            return Err(
+                mkerr(
+                    format!(
+                        "This should never happen! Attempted to seek to {i} even though there are only {} tokens ({} + {})",
+                        self.offset + self.tokens.len(),
+                        self.offset,
+                        self.tokens.len()
+                    )
+                )
+            );
+        }
+        self.location = i;
+
+        Ok(())
     }
     pub fn advance(&mut self, i: usize) {
         self.location += 1
@@ -55,5 +81,19 @@ pub fn peek_next(scanner: &mut TokenScanner) -> ParserResult<&tokens::Token> {
             details: ParserErrorDetails::Incomplete,
         }),
         Some(t) => Ok(t),
+    }
+}
+
+pub trait Parser {
+    type Output;
+
+    fn parse(&self, scanner: &mut TokenScanner) -> ParserResult<Self::Output>;
+}
+
+impl<T> Parser for fn(&mut TokenScanner) -> ParserResult<T> {
+    type Output = T;
+
+    fn parse(&self, scanner: &mut TokenScanner) -> ParserResult<T> {
+        self(scanner)
     }
 }

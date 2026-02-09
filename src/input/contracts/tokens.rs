@@ -19,7 +19,6 @@ pub enum Token {
     Comment(String),
     YamlMatter(serde_yaml::Mapping),
     Indent,
-    Dedent,
     Eof,
 }
 
@@ -27,6 +26,12 @@ pub const TOKEN_NAME_KEYWORD: &str = "keyword";
 pub const TOKEN_NAME_TIMESTAMP: &str = "timestamp";
 pub const TOKEN_NAME_AMOUNT: &str = "amount";
 pub const TOKEN_NAME_IDENTIFIER: &str = "identifier";
+pub const TOKEN_NAME_ACCOUNT_SEPARATOR: &str = "account separator";
+pub const TOKEN_NAME_POSTING_SEPARATOR: &str = "posting separator";
+pub const TOKEN_NAME_LINE_SEPARATOR: &str = "line separator";
+pub const TOKEN_NAME_COMMENT: &str = "comment";
+pub const TOKEN_NAME_YAML_MATTER: &str = "YAML matter";
+pub const TOKEN_NAME_INDENT: &str = "indent";
 
 impl Token {
     pub fn is_comment(&self) -> bool {

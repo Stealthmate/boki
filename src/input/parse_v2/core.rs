@@ -2,6 +2,8 @@ use crate::input::contracts::tokens;
 
 #[derive(Debug)]
 pub enum ParserErrorDetails {
+    Nested(String, Box<ParserError>),
+    ExpectedSomethingElse(String, tokens::Token),
     IllegalImplementation(String),
     /// We consumed all tokens without seeing an EOF token.
     Incomplete,
@@ -50,34 +52,38 @@ impl TokenScanner {
                 self.offset
             )));
         }
-        if i >= (self.offset + self.tokens.len()) {
-            return Err(
-                mkerr(
-                    format!(
-                        "This should never happen! Attempted to seek to {i} even though there are only {} tokens ({} + {})",
-                        self.offset + self.tokens.len(),
-                        self.offset,
-                        self.tokens.len()
-                    )
-                )
-            );
-        }
-        self.location = i;
+        self.location = i - self.offset;
 
         Ok(())
     }
-    pub fn advance(&mut self, i: usize) {
-        self.location += 1
+    pub fn advance(&mut self, i: usize) -> ParserResult<()> {
+        self.seek(self.location + 1)
     }
     pub fn peek(&self) -> Option<&tokens::Token> {
         self.tokens.get(self.location)
     }
+    pub fn next(&mut self) -> Option<&tokens::Token> {
+        let t = self.tokens.get(self.location);
+        self.location += 1;
+        t
+    }
 }
 
-pub fn peek_next(scanner: &mut TokenScanner) -> ParserResult<&tokens::Token> {
+pub fn peek_next(scanner: &TokenScanner) -> ParserResult<&tokens::Token> {
     match scanner.peek() {
         None => Err(ParserError {
             location: scanner.tell(),
+            details: ParserErrorDetails::Incomplete,
+        }),
+        Some(t) => Ok(t),
+    }
+}
+
+pub fn get_next(scanner: &mut TokenScanner) -> ParserResult<&tokens::Token> {
+    let location = scanner.tell();
+    match scanner.next() {
+        None => Err(ParserError {
+            location,
             details: ParserErrorDetails::Incomplete,
         }),
         Some(t) => Ok(t),
@@ -90,7 +96,10 @@ pub trait Parser {
     fn parse(&self, scanner: &mut TokenScanner) -> ParserResult<Self::Output>;
 }
 
-impl<T> Parser for fn(&mut TokenScanner) -> ParserResult<T> {
+impl<T, F> Parser for F
+where
+    F: Fn(&mut TokenScanner) -> ParserResult<T>,
+{
     type Output = T;
 
     fn parse(&self, scanner: &mut TokenScanner) -> ParserResult<T> {

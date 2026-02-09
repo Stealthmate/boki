@@ -14,8 +14,10 @@
 use crate::input::contracts::ast;
 use crate::input::contracts::tokens;
 
+mod basic;
 mod combinators;
 pub mod core;
+mod transaction;
 
 use core::{Parser, ParserResult, TokenScanner};
 
@@ -27,20 +29,12 @@ fn parse_initial_whitespace_and_comments(scanner: &mut TokenScanner) -> ParserRe
             _ => return Ok(()),
         };
 
-        scanner.advance(1);
+        scanner.advance(1)?;
     }
 }
 
 fn parse_transaction(scanner: &mut TokenScanner) -> ParserResult<ast::ASTNode> {
-    core::peek_next(scanner)?;
-    Ok(ast::ASTNode::Transaction(ast::Transaction {
-        header: ast::TransactionHeader {
-            timestamp: chrono::DateTime::parse_from_rfc3339("2026-01-01T00:00:00.000+09:00")
-                .unwrap(),
-            attributes: serde_yaml::Mapping::default(),
-        },
-        postings: vec![],
-    }))
+    transaction::TransactionParser::parse(scanner).map(ast::ASTNode::Transaction)
 }
 
 fn parse_set_attribute(scanner: &mut TokenScanner) -> ParserResult<ast::ASTNode> {

@@ -1,119 +1,124 @@
 use crate::input::parse_v2::core::{Parser, ParserError, ParserResult, TokenScanner};
-// struct ManyParser<P> {
-//     parser: P,
-// }
+struct ManyParser<P> {
+    parser: P,
+}
 
-// impl<'a, T, P> Parser<'a> for ManyParser<P>
-// where
-//     P: Parser<'a, Output = T>,
-// {
-//     type Output = Vec<T>;
+impl<T, P> Parser for ManyParser<P>
+where
+    P: Parser<Output = T>,
+{
+    type Output = Vec<T>;
 
-//     fn parse(&self, tokens: &'a [Token]) -> ParserResult<'a, Vec<T>> {
-//         let mut parsed = vec![];
-//         let mut rest = tokens;
+    fn parse(&self, scanner: &mut TokenScanner) -> ParserResult<Vec<T>> {
+        let mut parsed = vec![];
 
-//         loop {
-//             match self.parser.parse(rest) {
-//                 Err(_) => {
-//                     break;
-//                 }
-//                 Ok((next_rest, next_parsed)) => {
-//                     rest = next_rest;
-//                     parsed.push(next_parsed);
-//                 }
-//             }
-//         }
+        loop {
+            let i = scanner.tell();
+            match self.parser.parse(scanner) {
+                Err(_) => {
+                    scanner.seek(i)?;
+                    break;
+                }
+                Ok(x) => {
+                    parsed.push(x);
+                }
+            }
+        }
 
-//         Ok((rest, parsed))
-//     }
-// }
+        Ok(parsed)
+    }
+}
 
-// pub fn many<'a, P1, T>(parser: P1) -> impl Parser<'a, Output = Vec<T>>
-// where
-//     P1: Parser<'a, Output = T>,
-// {
-//     ManyParser { parser }
-// }
+pub fn many<P1, T>(parser: P1) -> impl Parser<Output = Vec<T>>
+where
+    P1: Parser<Output = T>,
+{
+    ManyParser { parser }
+}
 
-// struct OptionalParser<P> {
-//     parser: P,
-// }
+struct OptionalParser<P> {
+    parser: P,
+}
 
-// impl<'a, T, P> Parser<'a> for OptionalParser<P>
-// where
-//     P: Parser<'a, Output = T>,
-// {
-//     type Output = Option<T>;
+impl<T, P> Parser for OptionalParser<P>
+where
+    P: Parser<Output = T>,
+{
+    type Output = Option<T>;
 
-//     fn parse(&self, tokens: &'a [Token]) -> ParserResult<'a, Option<T>> {
-//         match self.parser.parse(tokens) {
-//             Ok((rest, x)) => Ok((rest, Some(x))),
-//             Err(_) => Ok((tokens, None)),
-//         }
-//     }
-// }
+    fn parse(&self, scanner: &mut TokenScanner) -> ParserResult<Option<T>> {
+        let i = scanner.tell();
+        match self.parser.parse(scanner) {
+            Ok(x) => Ok(Some(x)),
+            Err(_) => {
+                scanner.seek(i)?;
+                Ok(None)
+            }
+        }
+    }
+}
 
-// pub fn optional<'a, P1, T>(parser: P1) -> impl Parser<'a, Output = Option<T>>
-// where
-//     P1: Parser<'a, Output = T>,
-// {
-//     OptionalParser { parser }
-// }
+pub fn optional<P1, T>(parser: P1) -> impl Parser<Output = Option<T>>
+where
+    P1: Parser<Output = T>,
+{
+    OptionalParser { parser }
+}
 
-// struct PrecededParser<P1, P2> {
-//     p1: P1,
-//     p2: P2,
-// }
+struct PrecededParser<P1, P2> {
+    p1: P1,
+    p2: P2,
+}
 
-// impl<'a, T, P1, P2> Parser<'a> for PrecededParser<P1, P2>
-// where
-//     P1: Parser<'a>,
-//     P2: Parser<'a, Output = T>,
-// {
-//     type Output = T;
+impl<T, P1, P2> Parser for PrecededParser<P1, P2>
+where
+    P1: Parser,
+    P2: Parser<Output = T>,
+{
+    type Output = T;
 
-//     fn parse(&self, tokens: &'a [Token]) -> ParserResult<'a, T> {
-//         let (tokens, _) = self.p1.parse(tokens)?;
-//         let (tokens, v) = self.p2.parse(tokens)?;
-//         Ok((tokens, v))
-//     }
-// }
+    fn parse(&self, scanner: &mut TokenScanner) -> ParserResult<T> {
+        self.p1.parse(scanner)?;
+        let x = self.p2.parse(scanner)?;
+        Ok(x)
+    }
+}
 
-// pub fn preceded<'a, P1, P2, T>(p1: P1, p2: P2) -> impl Parser<'a, Output = T>
-// where
-//     P1: Parser<'a>,
-//     P2: Parser<'a, Output = T>,
-// {
-//     PrecededParser { p1, p2 }
-// }
+pub fn preceded<P1, P2, T>(p1: P1, p2: P2) -> impl Parser<Output = T>
+where
+    P1: Parser,
+    P2: Parser<Output = T>,
+{
+    PrecededParser { p1, p2 }
+}
 
-// struct TerminatedParser<P1, P2> {
-//     p1: P1,
-//     p2: P2,
-// }
+struct TerminatedParser<P1, P2> {
+    p1: P1,
+    p2: P2,
+}
 
-// impl<'a, T, P1, P2> Parser<'a> for TerminatedParser<P1, P2>
-// where
-//     P1: Parser<'a, Output = T>,
-//     P2: Parser<'a>,
-// {
-//     type Output = T;
+impl<T, P1, P2> Parser for TerminatedParser<P1, P2>
+where
+    P1: Parser<Output = T>,
+    P2: Parser,
+{
+    type Output = T;
 
-//     fn parse(&self, tokens: &'a [Token]) -> ParserResult<'a, T> {
-//         let (tokens, v) = self.p1.parse(tokens)?;
-//         let (tokens, _) = self.p2.parse(tokens)?;
-//         Ok((tokens, v))
-//     }
-// }
+    fn parse(&self, scanner: &mut TokenScanner) -> ParserResult<T> {
+        let x = self.p1.parse(scanner)?;
+        println!("Terminated 1");
+        self.p2.parse(scanner)?;
+        Ok(x)
+    }
+}
 
-// pub fn terminated<'a, P1, P2, T>(p1: P1, p2: P2) -> impl Parser<'a, Output = T>
-// where
-//     P1: Parser<'a, Output = T>,
-//     P2: Parser<'a>,
-// {
-//     TerminatedParser { p1, p2 }
-// }
+pub fn terminated<P1, P2, T>(p1: P1, p2: P2) -> impl Parser<Output = T>
+where
+    P1: Parser<Output = T>,
+    P2: Parser,
+{
+    TerminatedParser { p1, p2 }
+}
 
 struct OneOfParser<'a, P> {
     parsers: &'a [P],

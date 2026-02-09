@@ -1,7 +1,9 @@
 #![allow(dead_code)]
 #![allow(unused_variables)]
 use crate::utils::indent_string;
+
 mod compile;
+mod contracts;
 mod lex;
 mod parse;
 
@@ -9,7 +11,7 @@ mod parse;
 pub enum InputError {
     LexError(String),
     ParseError(String),
-    CompileError(compile::ast::CompilationError),
+    CompileError(compile::CompilationError),
 }
 
 impl std::fmt::Display for InputError {

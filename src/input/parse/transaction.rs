@@ -1,7 +1,7 @@
-use crate::input::compile::ast;
+use crate::input::contracts::ast;
+use crate::input::contracts::tokens::Token;
 use crate::input::parse::core;
 use crate::input::parse::core::Parser;
-use crate::input::parse::core::Token;
 
 pub struct TransactionParser;
 
@@ -81,7 +81,7 @@ impl TransactionParser {
 #[cfg(test)]
 mod test {
     use super::TransactionParser;
-    use crate::input::parse::core::{Timestamp, Token};
+    use crate::input::contracts::tokens::{Timestamp, Token};
 
     fn sample_timestamp() -> Timestamp {
         Timestamp::parse_from_rfc3339("2026-01-02T03:04:05.000+09:00").unwrap()

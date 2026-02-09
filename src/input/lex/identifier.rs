@@ -1,6 +1,6 @@
 use super::core::LexResult;
+use crate::input::contracts::tokens::Token;
 use crate::input::lex::whitespace;
-use crate::input::parse::Token;
 use nom::bytes::complete::is_a;
 use nom::combinator::{opt, recognize};
 use nom::sequence::{pair, preceded};

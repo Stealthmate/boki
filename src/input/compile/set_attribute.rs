@@ -1,4 +1,4 @@
-use crate::input::compile::ast::CompilationResult;
+use super::CompilationResult;
 use crate::output;
 
 pub struct SetAttributeCompiler;

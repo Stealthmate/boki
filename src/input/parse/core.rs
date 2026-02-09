@@ -1,32 +1,4 @@
-use chrono::{DateTime, FixedOffset};
-
-pub type Timestamp = DateTime<FixedOffset>;
-
-#[derive(Clone, Debug, PartialEq)]
-pub enum Keyword {
-    Set,
-}
-
-#[derive(Clone, Debug, PartialEq)]
-pub enum Token {
-    Keyword(Keyword),
-    Timestamp(Timestamp),
-    Amount(i64),
-    Identifier(String),
-    AccountSeparator,
-    PostingSeparator,
-    LineSeparator,
-    Comment(String),
-    YamlMatter(serde_yaml::Mapping),
-    Indent,
-    Dedent,
-}
-
-impl Token {
-    pub fn is_comment(&self) -> bool {
-        matches!(self, Token::Comment(_))
-    }
-}
+use crate::input::contracts::tokens::{Keyword, Timestamp, Token};
 
 pub type ParserResult<'a, T> = Result<(&'a [Token], T), String>;
 

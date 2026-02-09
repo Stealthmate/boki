@@ -1,4 +1,4 @@
-use crate::input::parse::{Keyword, Token};
+use crate::input::contracts::tokens::{Keyword, Token};
 use nom::branch::alt;
 use nom::bytes::complete::{tag, take_until};
 use nom::character::complete::none_of;
@@ -131,8 +131,8 @@ pub fn lex_string(input: &str) -> LexResult<'_, Vec<Token>> {
 
 #[cfg(test)]
 mod test {
+    use crate::input::contracts::tokens::Token;
     use crate::input::lex::lex_string;
-    use crate::input::parse::Token;
 
     #[test]
     fn test_empty() {

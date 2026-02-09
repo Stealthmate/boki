@@ -1,13 +1,23 @@
+use crate::input::contracts::ast;
 use crate::output::{self};
 
-pub mod ast;
 mod set_attribute;
 mod transaction;
 
-pub fn compile_node(
-    node: &ast::ASTNode,
-    journal: &mut output::Journal,
-) -> ast::CompilationResult<()> {
+#[derive(Debug)]
+pub enum CompilationError {
+    GeneralError(String),
+}
+
+impl CompilationError {
+    pub fn from_str(s: &str) -> Self {
+        CompilationError::GeneralError(s.to_string())
+    }
+}
+
+pub type CompilationResult<T> = Result<T, CompilationError>;
+
+pub fn compile_node(node: &ast::ASTNode, journal: &mut output::Journal) -> CompilationResult<()> {
     match node {
         ast::ASTNode::Transaction(t) => transaction::TransactionCompiler::compile(t, journal),
         ast::ASTNode::SetAttribute(name, value) => {
@@ -16,7 +26,7 @@ pub fn compile_node(
     }
 }
 
-pub fn compile(nodes: Vec<ast::ASTNode>) -> ast::CompilationResult<output::Journal> {
+pub fn compile(nodes: Vec<ast::ASTNode>) -> CompilationResult<output::Journal> {
     let mut journal = output::Journal::default();
 
     for node in &nodes {

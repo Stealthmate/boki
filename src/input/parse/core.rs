@@ -52,7 +52,6 @@ parse_token!(
     x
 );
 parse_token!(parse_indent, (), Token::Indent, ());
-parse_token!(parse_dedent, (), Token::Dedent, ());
 
 pub fn parse_keyword<'a>(tokens: &'a [Token], kw: Keyword) -> ParserResult<'a, ()> {
     let (rest, t) = next(tokens)?;

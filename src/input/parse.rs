@@ -1,13 +1,13 @@
-use crate::input::compile::ast;
+use crate::input::contracts::ast;
+use crate::input::contracts::tokens;
 
 mod core;
-pub use core::{Keyword, Parser, Timestamp, Token};
 mod set_attribute;
 mod transaction;
 
-use core::ParserResult;
+use core::{Parser, ParserResult};
 
-fn parse_comments(tokens: &[core::Token]) -> ParserResult<'_, ()> {
+fn parse_comments(tokens: &[tokens::Token]) -> ParserResult<'_, ()> {
     let mut rest = tokens;
 
     loop {
@@ -20,23 +20,23 @@ fn parse_comments(tokens: &[core::Token]) -> ParserResult<'_, ()> {
     Ok((rest, ()))
 }
 
-fn parse_transaction(tokens: &[core::Token]) -> ParserResult<'_, ast::ASTNode> {
+fn parse_transaction(tokens: &[tokens::Token]) -> ParserResult<'_, ast::ASTNode> {
     let (tokens, t) = transaction::TransactionParser::parse(tokens)?;
     Ok((tokens, ast::ASTNode::Transaction(t)))
 }
 
-fn parse_set_attribute(tokens: &[core::Token]) -> ParserResult<'_, ast::ASTNode> {
+fn parse_set_attribute(tokens: &[tokens::Token]) -> ParserResult<'_, ast::ASTNode> {
     let (tokens, (name, value)) = set_attribute::SetAttributeParser::new().parse(tokens)?;
     Ok((tokens, ast::ASTNode::SetAttribute(name, value)))
 }
 
-fn parse_node(tokens: &[core::Token]) -> ParserResult<'_, ast::ASTNode> {
+fn parse_node(tokens: &[tokens::Token]) -> ParserResult<'_, ast::ASTNode> {
     let parsers = [parse_transaction, parse_set_attribute];
     let result = core::one_of(&parsers).parse(tokens);
     result
 }
 
-pub fn parse_tokens(tokens: &[core::Token]) -> ParserResult<'_, Vec<ast::ASTNode>> {
+pub fn parse_tokens(tokens: &[tokens::Token]) -> ParserResult<'_, Vec<ast::ASTNode>> {
     let (tokens, _) = parse_comments(tokens)?;
 
     let mut rest = tokens;
@@ -54,7 +54,7 @@ pub fn parse_tokens(tokens: &[core::Token]) -> ParserResult<'_, Vec<ast::ASTNode
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::input::parse::core::Token;
+    use crate::input::parse::tokens::Token;
     use chrono::DateTime;
 
     #[test]

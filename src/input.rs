@@ -7,6 +7,7 @@ mod compile;
 mod contracts;
 mod lex;
 mod parse;
+mod parse_v2;
 
 #[derive(Debug)]
 pub enum InputError {

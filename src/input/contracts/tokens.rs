@@ -20,6 +20,7 @@ pub enum Token {
     YamlMatter(serde_yaml::Mapping),
     Indent,
     Dedent,
+    Eof,
 }
 
 pub const TOKEN_NAME_KEYWORD: &str = "keyword";

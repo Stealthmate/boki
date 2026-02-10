@@ -1,3 +1,12 @@
+//! The lexer stage.
+//!
+//! This module is responsible for producing Tokens from
+//! a string of characters.
+//!
+//! The lexer depends only on the Token type.
+//!
+//! TODO: actual contract of the lexer
+
 use crate::input::contracts::tokens::{self, Token};
 use nom::combinator::opt;
 use nom::Parser;
@@ -76,11 +85,16 @@ fn fold_tokens(
 }
 
 pub fn lex_string(input: &str) -> LexResult<'_, Vec<core::DecoratedToken>> {
+    let (input, _) = opt(whitespace::linespace).parse(input)?;
+
     let mut tokens = vec![];
     let mut remaining = input;
     loop {
-        let (rest, _) = opt(whitespace::linespace).parse(remaining)?;
-        let Ok((rest, t)) = lex_single_token(rest) else {
+        if remaining.is_empty() {
+            break;
+        }
+
+        let Ok((rest, t)) = lex_single_token(remaining) else {
             break;
         };
         remaining = rest;
@@ -94,7 +108,7 @@ pub fn lex_string(input: &str) -> LexResult<'_, Vec<core::DecoratedToken>> {
 
     let folded = tokens.into_iter().fold(vec![], fold_tokens);
 
-    Ok((input, folded))
+    Ok((remaining, folded))
 }
 
 #[cfg(test)]

@@ -48,12 +48,18 @@ fn format_nearby_lines(n: usize, content: &str) -> String {
     let lines = &content.split("\n").collect::<Vec<&str>>()[xmin..xmax];
 
     let mut output = String::new();
+    if xmin > 0 {
+        output += "  ...\n";
+    }
     for (i, line) in lines.iter().enumerate() {
         if i == x {
             output += &format!("-> {}\n", line);
         } else {
             output += &format!("   {}\n", line);
         }
+    }
+    if xmax < content.len() {
+        output += "  ...\n"
     }
 
     output
@@ -72,8 +78,12 @@ impl std::fmt::Display for InputError {
                 let line_number = compute_line_number(details.location, tokens, raw_content);
                 let nearby_lines = format_nearby_lines(line_number, raw_content);
                 writeln!(f, "Parse Error:")?;
-                write!(f, "  {}:{}:{}\n\n", filename, line_number, details.location)?;
-                write!(f, "  {}\n\n", indent_string(&nearby_lines))?;
+                writeln!(f, "  {}:{}:{}", filename, line_number, details.location)?;
+                writeln!(f)?;
+                writeln!(f, "  ===========")?;
+                write!(f, "{}", indent_string(&nearby_lines))?;
+                writeln!(f, "  ===========")?;
+                writeln!(f)?;
                 write!(f, "  {:#?}", details.details)?;
             }
             InputError::CompileError(e) => {
@@ -87,9 +97,8 @@ impl std::fmt::Display for InputError {
 
 pub type InputResult<T> = Result<T, InputError>;
 
-fn parse_file(filename: &str) -> InputResult<Vec<ast::ASTNode>> {
-    let content = std::fs::read_to_string(filename).unwrap();
-    let (_, tokens) = lex::lex_string(&content).map_err(|e| InputError::LexError(e.to_string()))?;
+fn parse_string(filename: &str, content: &str) -> InputResult<Vec<ast::ASTNode>> {
+    let (_, tokens) = lex::lex_string(content).map_err(|e| InputError::LexError(e.to_string()))?;
     let the_tokens: Vec<contracts::tokens::Token> =
         tokens.iter().map(|x| x.token().clone()).collect();
     let mut scanner = parse_v2::core::TokenScanner::from_slice(&the_tokens);
@@ -122,8 +131,24 @@ fn parse_file(filename: &str) -> InputResult<Vec<ast::ASTNode>> {
     Ok(nodes)
 }
 
+fn parse_file(filename: &str) -> InputResult<Vec<ast::ASTNode>> {
+    let content = std::fs::read_to_string(filename).unwrap();
+    parse_string(filename, &content)
+}
+
 pub fn compile_file(filename: &str) -> InputResult<crate::output::Journal> {
     let nodes = parse_file(filename)?;
+
+    let mut journal = crate::output::Journal::default();
+    for node in nodes {
+        compile::compile_node(&node, &mut journal).map_err(InputError::CompileError)?;
+    }
+
+    Ok(journal)
+}
+
+pub fn compile_string(content: &str) -> InputResult<crate::output::Journal> {
+    let nodes = parse_string("", content)?;
 
     let mut journal = crate::output::Journal::default();
     for node in nodes {

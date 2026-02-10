@@ -12,9 +12,9 @@ impl std::fmt::Display for CLIError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match &self {
             CLIError::InputError(e) => {
-                write!(f, "Input Error:\n  {}", indent_string(&e.to_string()))?
+                write!(f, "Input Error:\n{}", indent_string(&e.to_string()))?
             }
-            CLIError::OtherError(e) => write!(f, "Other Error:\n  {}", indent_string(e))?,
+            CLIError::OtherError(e) => write!(f, "Other Error:\n{}", indent_string(e))?,
         };
 
         Ok(())

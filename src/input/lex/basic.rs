@@ -2,8 +2,7 @@ use crate::input::contracts::tokens::{Keyword, Token};
 use nom::branch::alt;
 use nom::bytes::complete::{tag, take_until};
 use nom::character::complete::none_of;
-use nom::combinator::{all_consuming, opt, peek};
-use nom::multi::many0;
+use nom::combinator::{opt, peek};
 use nom::sequence::{delimited, preceded};
 use nom::Parser;
 

@@ -50,7 +50,7 @@ struct Cli {
 fn _main() -> CLIResult<()> {
     let cli = Cli::parse();
 
-    let journal = boki::input::compile_file(&cli.file.to_str().unwrap())?;
+    let journal = boki::input::compile_file(cli.file.to_str().unwrap())?;
 
     match &cli.command {
         Commands::Export { output } => {

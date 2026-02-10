@@ -1,8 +1,6 @@
 use crate::input::contracts::tokens::{self, Token};
-use nom::combinator::{all_consuming, opt};
-use nom::multi::many0;
-use nom::sequence::preceded;
-use nom::{Input, Parser};
+use nom::combinator::opt;
+use nom::Parser;
 
 mod amount;
 mod basic;

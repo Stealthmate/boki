@@ -36,12 +36,12 @@ fn compute_line_number(
         }
     }
 
-    return 0;
+    0
 }
 
 fn format_nearby_lines(n: usize, content: &str) -> String {
     let offset = 3;
-    let xmin = if n < offset { 0 } else { n - offset };
+    let xmin = n.saturating_sub(offset);
     let xmax = n + offset;
     let x = n - xmin;
 
@@ -69,9 +69,9 @@ impl std::fmt::Display for InputError {
                 tokens,
                 details,
             } => {
-                let line_number = compute_line_number(details.location, &tokens, &raw_content);
-                let nearby_lines = format_nearby_lines(line_number, &raw_content);
-                write!(f, "Parse Error:\n")?;
+                let line_number = compute_line_number(details.location, tokens, raw_content);
+                let nearby_lines = format_nearby_lines(line_number, raw_content);
+                writeln!(f, "Parse Error:")?;
                 write!(f, "  {}:{}:{}\n\n", filename, line_number, details.location)?;
                 write!(f, "  {}\n\n", indent_string(&nearby_lines))?;
                 write!(f, "  {:#?}", details.details)?;

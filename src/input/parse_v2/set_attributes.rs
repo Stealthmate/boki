@@ -1,7 +1,7 @@
-use crate::input::contracts::tokens::{Keyword, Token};
-use crate::input::parse_v2::{basic, combinators, core};
+use crate::input::contracts::tokens::Keyword;
+use crate::input::parse_v2::{basic, core};
 
-use crate::input::parse_v2::core::{Parser, ParserError, TokenScanner};
+use crate::input::parse_v2::core::TokenScanner;
 
 pub struct SetAttributeParser;
 
@@ -11,7 +11,7 @@ impl SetAttributeParser {
     }
 
     pub fn parse(&self, scanner: &mut TokenScanner) -> core::ParserResult<(String, String)> {
-        let w = basic::parse_keyword(scanner, Keyword::Set)?;
+        basic::parse_keyword(scanner, Keyword::Set)?;
         let name = basic::parse_identifier(scanner)?;
         let value = basic::parse_identifier(scanner)?;
         basic::parse_line_separator(scanner)?;

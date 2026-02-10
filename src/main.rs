@@ -50,9 +50,7 @@ struct Cli {
 fn _main() -> CLIResult<()> {
     let cli = Cli::parse();
 
-    let source =
-        std::fs::read_to_string(cli.file).map_err(|e| CLIError::OtherError(e.to_string()))?;
-    let journal = boki::input::compile_string(&source)?;
+    let journal = boki::input::compile_file(&cli.file.to_str().unwrap())?;
 
     match &cli.command {
         Commands::Export { output } => {

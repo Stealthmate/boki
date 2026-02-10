@@ -1,88 +1,42 @@
-use crate::input::contracts::tokens::{Keyword, Token};
-use nom::branch::alt;
-use nom::bytes::complete::{tag, take_until};
-use nom::character::complete::none_of;
-use nom::combinator::{all_consuming, opt, peek};
+use crate::input::contracts::tokens::{self, Token};
+use nom::combinator::{all_consuming, opt};
 use nom::multi::many0;
-use nom::sequence::{delimited, preceded};
-use nom::Parser;
+use nom::sequence::preceded;
+use nom::{Input, Parser};
 
 mod amount;
-mod core;
+mod basic;
+pub mod core;
 mod identifier;
 mod timestamp;
 mod whitespace;
 
 use core::LexResult;
 
-fn lex_indent(input: &str) -> LexResult<'_, Token> {
-    let (input, _) = tag("  ").parse(input)?;
-    let (input, _) = peek(none_of("\n")).parse(input)?;
-    Ok((input, Token::Indent))
-}
-
-fn lex_account_separator(input: &str) -> LexResult<'_, Token> {
-    let (input, _) = preceded(opt(whitespace::whitespace), tag("/")).parse(input)?;
-    Ok((input, Token::AccountSeparator))
-}
-
-fn lex_posting_separator(input: &str) -> LexResult<'_, Token> {
-    let (input, _) = preceded(opt(whitespace::whitespace), tag(";")).parse(input)?;
-    Ok((input, Token::PostingSeparator))
-}
-
-fn lex_line_separator(input: &str) -> LexResult<'_, Token> {
-    let (input, _) = preceded(opt(whitespace::whitespace), tag("\n")).parse(input)?;
-    Ok((input, Token::LineSeparator))
-}
-
-fn lex_keyword(input: &str) -> LexResult<'_, Token> {
-    let (input, kw) = alt([tag("set")]).parse(input)?;
-
-    let the_kw = match kw {
-        "set" => Keyword::Set,
-        _ => {
-            panic!("Unhandled keyword. This is a bug.");
-        }
-    };
-
-    Ok((input, Token::Keyword(the_kw)))
-}
-
-fn lex_yaml_matter(input: &str) -> LexResult<'_, Token> {
-    let start = "  ---\n";
-    let end = "\n  ---";
-    let (input, yamlstr) = delimited(tag(start), take_until(end), tag(end)).parse(input)?;
-    let stripped = yamlstr.replace("\n  ", "\n");
-    let Ok(parsed) = serde_yaml::from_str(&stripped) else {
-        return Err(nom::Err::Error(nom::error::make_error(
-            input,
-            nom::error::ErrorKind::IsNot,
-        )));
-    };
-    Ok((input, Token::YamlMatter(parsed)))
+fn compare_match_length(a: &(&str, Token), b: &(&str, Token)) -> std::cmp::Ordering {
+    a.0.len().cmp(&b.0.len())
 }
 
 fn lex_single_token(input: &str) -> LexResult<'_, Token> {
+    // First we lexer in order of priority
+    for mut lexer in [basic::lex_yaml_matter, basic::lex_indent] {
+        if let Ok(x) = lexer.parse(input) {
+            return Ok(x);
+        }
+    }
+
+    // If none of the priority lexers succeed,
+    // we take the longest match of the remaining ones.
+
     let mut results = vec![];
-
-    if let Ok((rest, t)) = lex_yaml_matter(input) {
-        return Ok((rest, t));
-    }
-
-    if let Ok((rest, _)) = lex_indent(input) {
-        return Ok((rest, Token::Indent));
-    }
-
     for mut lexer in [
-        lex_keyword,
+        basic::lex_keyword,
         identifier::lex,
         timestamp::lex,
         amount::lex,
-        lex_indent,
-        lex_account_separator,
-        lex_posting_separator,
-        lex_line_separator,
+        basic::lex_account_separator,
+        basic::lex_posting_separator,
+        basic::lex_line_separator,
     ] {
         if let Ok(x) = lexer.parse(input) {
             results.push(x);
@@ -90,7 +44,8 @@ fn lex_single_token(input: &str) -> LexResult<'_, Token> {
     }
 
     // Note: we rely on preserving the initial order here.
-    results.sort_by(|a, b| a.0.len().cmp(&b.0.len()));
+    results.sort_by(compare_match_length);
+
     let Some(result) = results.first().cloned() else {
         return Err(nom::Err::Error(nom::error::make_error(
             input,
@@ -101,30 +56,45 @@ fn lex_single_token(input: &str) -> LexResult<'_, Token> {
     Ok(result)
 }
 
-pub fn lex_string(input: &str) -> LexResult<'_, Vec<Token>> {
-    let (input, mut tokens) = all_consuming(preceded(
-        opt(whitespace::linespace),
-        many0(lex_single_token),
-    ))
-    .parse(input)?;
+fn fold_tokens(
+    mut a: Vec<core::DecoratedToken>,
+    t: core::DecoratedToken,
+) -> Vec<core::DecoratedToken> {
+    let Some(last) = a.last() else {
+        a.push(t);
+        return a;
+    };
 
-    if !tokens.is_empty() {
-        tokens.push(Token::LineSeparator);
+    match (last.token().name(), t.token().name()) {
+        // consecutive newlines are combined into one
+        (tokens::TOKEN_NAME_LINE_SEPARATOR, tokens::TOKEN_NAME_LINE_SEPARATOR) => a,
+        // Indent not following a newline is skipped
+        (n, tokens::TOKEN_NAME_INDENT) if n != tokens::TOKEN_NAME_LINE_SEPARATOR => a,
+        _ => {
+            a.push(t);
+            a
+        }
+    }
+}
+
+pub fn lex_string(input: &str) -> LexResult<'_, Vec<core::DecoratedToken>> {
+    let mut tokens = vec![];
+    let mut remaining = input;
+    loop {
+        let (rest, _) = opt(whitespace::linespace).parse(remaining)?;
+        let Ok((rest, t)) = lex_single_token(rest) else {
+            break;
+        };
+        remaining = rest;
+        let loc = input.len() - remaining.len();
+        tokens.push(core::DecoratedToken::new(t, loc));
     }
 
-    let folded = tokens
-        .into_iter()
-        .fold(vec![], |mut a, t| match (a.last(), &t) {
-            (Some(Token::LineSeparator), Token::LineSeparator) => a,
-            // Indent token is only considered an indent if it follows a new line.
-            // Otherwise we treat it as whitespace and skip it altogether.
-            // TODO: this is a hack. Need to implement it properly eventually...
-            (Some(t), Token::Indent) if !matches!(t, Token::LineSeparator) => a,
-            _ => {
-                a.push(t);
-                a
-            }
-        });
+    if !tokens.is_empty() {
+        tokens.push(core::DecoratedToken::new(Token::LineSeparator, 0));
+    }
+
+    let folded = tokens.into_iter().fold(vec![], fold_tokens);
 
     Ok((input, folded))
 }
@@ -155,7 +125,7 @@ mod test {
         let input = "foo";
         let (rest, tokens) = lex_string(input).expect("Failed.");
         let tok = tokens.first().expect("Should have lexed at least 1 token.");
-        let Token::Identifier(x) = tok else {
+        let Token::Identifier(x) = &tok.token() else {
             panic!("Should have been an identifier token.");
         };
         assert_eq!(x, "foo");
@@ -166,8 +136,9 @@ mod test {
     fn test_2_token_with_space_inbetween() {
         let input = "\n    \nfoo  \n \n \t\t  \n\n\nbar\n\n";
         let (rest, tokens) = lex_string(input).expect("Failed.");
+        let the_tokens: Vec<Token> = tokens.iter().map(|x| x.token().clone()).collect();
         assert_eq!(
-            tokens,
+            the_tokens,
             vec![
                 Token::Identifier("foo".to_string()),
                 Token::LineSeparator,
@@ -182,10 +153,11 @@ mod test {
     fn test_yaml_matter() {
         let input = "  ---\n  foo: bar\n  ---";
         let (rest, tokens) = lex_string(input).expect("Failed.");
+        let the_tokens: Vec<Token> = tokens.iter().map(|x| x.token().clone()).collect();
         let mapping: serde_yaml::Mapping =
             serde_yaml::from_str("foo: bar").expect("Invalid test case.");
         assert_eq!(
-            tokens,
+            the_tokens,
             vec![Token::YamlMatter(mapping), Token::LineSeparator,]
         );
         assert!(rest.is_empty());

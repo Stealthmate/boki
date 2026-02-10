@@ -1,0 +1,16 @@
+name: Check
+run-name: Check
+on:
+  pull_request:
+    branches:
+      - main
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Check
+        run: |
+          cargo fmt
+          cargo clippy
+          cargo test

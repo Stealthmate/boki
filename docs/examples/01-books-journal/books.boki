@@ -1,0 +1,41 @@
+set default_commodity USD // Any time we do not specify a commodity, boki will assume we mean USD.
+
+2026-01-01
+// You can include arbitrary YAML segments in transactions!
+  ---
+  book: The Art of Computer Programming 1
+  new: true
+  topics:
+    - Software
+  ---
+  assets/cash;USD;       80 // Here we explicitly specify the commodity
+  expense;;                 // Here boki automatically balances the transaction, assuming the default commodity we specified earlier
+
+2026-01-02
+  ---
+  book: Harry Potter and the Philosopher's Stone
+  new: false
+  ---
+  assets/cash;;       16
+  expense;;
+
+2026-01-03
+  ---
+  book: The Mythical Man-Month
+  new: true
+  topics:
+    - Software
+  ---
+  assets/cash;;       20
+  expense;;
+
+2026-01-04
+  ---
+  book: The DevOps Handbook
+  new: false
+  topics:
+    - Software
+    - DevOps
+  ---
+  assets/cash;;       30
+  expense;;

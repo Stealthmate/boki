@@ -99,12 +99,14 @@ pub fn lex_string(input: &str) -> LexResult<'_, Vec<core::DecoratedToken>> {
         };
         remaining = rest;
         let loc = input.len() - remaining.len();
+        if let Token::LineSeparator = &t {
+            let (rest, _) = opt(whitespace::linespace).parse(rest)?;
+            remaining = rest;
+        };
         tokens.push(core::DecoratedToken::new(t, loc));
     }
 
-    if !tokens.is_empty() {
-        tokens.push(core::DecoratedToken::new(Token::LineSeparator, 0));
-    }
+    tokens.push(core::DecoratedToken::new(Token::Eof, 0));
 
     let folded = tokens.into_iter().fold(vec![], fold_tokens);
 
@@ -117,23 +119,25 @@ mod test {
     use crate::input::lex::lex_string;
 
     #[test]
-    fn test_empty() {
+    fn test_inserts_eof_token_at_end() {
         let input = "";
         let (rest, tokens) = lex_string(input).expect("Failed.");
-        assert!(tokens.is_empty());
+        let t = tokens.first().map(|t| t.token());
+        assert!(matches!(t, Some(Token::Eof)));
         assert!(rest.is_empty());
     }
 
     #[test]
-    fn test_linespace_only() {
+    fn test_skips_initial_linespace() {
         let input = "   \t  \n   \n\n\n";
         let (rest, tokens) = lex_string(input).expect("Failed.");
-        assert!(tokens.is_empty());
+        let t = tokens.first().map(|t| t.token());
+        assert!(matches!(t, Some(Token::Eof)));
         assert!(rest.is_empty());
     }
 
     #[test]
-    fn test_1_token() {
+    fn test_lexes_1_token() {
         let input = "foo";
         let (rest, tokens) = lex_string(input).expect("Failed.");
         let tok = tokens.first().expect("Should have lexed at least 1 token.");
@@ -145,7 +149,7 @@ mod test {
     }
 
     #[test]
-    fn test_2_token_with_space_inbetween() {
+    fn test_lexes_2_tokens_with_space_inbetween() {
         let input = "\n    \nfoo  \n \n \t\t  \n\n\nbar\n\n";
         let (rest, tokens) = lex_string(input).expect("Failed.");
         let the_tokens: Vec<Token> = tokens.iter().map(|x| x.token().clone()).collect();
@@ -156,6 +160,7 @@ mod test {
                 Token::LineSeparator,
                 Token::Identifier("bar".to_string()),
                 Token::LineSeparator,
+                Token::Eof
             ]
         );
         assert!(rest.is_empty());
@@ -168,10 +173,7 @@ mod test {
         let the_tokens: Vec<Token> = tokens.iter().map(|x| x.token().clone()).collect();
         let mapping: serde_yaml::Mapping =
             serde_yaml::from_str("foo: bar").expect("Invalid test case.");
-        assert_eq!(
-            the_tokens,
-            vec![Token::YamlMatter(mapping), Token::LineSeparator,]
-        );
+        assert_eq!(the_tokens, vec![Token::YamlMatter(mapping), Token::Eof]);
         assert!(rest.is_empty());
     }
 }

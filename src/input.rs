@@ -23,29 +23,35 @@ pub enum InputError {
 }
 
 fn compute_line_number(
-    location: usize,
+    mut location: usize,
     tokens: &[lex::core::DecoratedToken],
     content: &str,
 ) -> usize {
+    if location == tokens.len() {
+        location -= 1;
+    }
     let initial_token_idx = tokens.get(location).unwrap().location();
     let mut i = 0;
+    let mut last_line = 0;
     for (j, line) in content.split("\n").enumerate() {
         i += line.len();
         if i >= initial_token_idx {
             return j;
         }
+        last_line = j;
     }
 
-    0
+    last_line
 }
 
 fn format_nearby_lines(n: usize, content: &str) -> String {
     let offset = 3;
     let xmin = n.saturating_sub(offset);
-    let xmax = n + offset;
+    let lines: Vec<&str> = content.split("\n").collect();
+    let xmax = std::cmp::min(n + offset, lines.len() - 1);
     let x = n - xmin;
 
-    let lines = &content.split("\n").collect::<Vec<&str>>()[xmin..xmax];
+    let lines = &lines[xmin..xmax];
 
     let mut output = String::new();
     if xmin > 0 {

@@ -51,7 +51,7 @@ pub fn lex_keyword(input: &str) -> LexResult<'_, Token> {
 }
 
 pub fn lex_yaml_matter(input: &str) -> LexResult<'_, Token> {
-    let start = "  ---\n";
+    let start = "  ---\n  ";
     let end = "\n  ---";
     let (input, yamlstr) = delimited(tag(start), take_until(end), tag(end)).parse(input)?;
     let stripped = yamlstr.replace("\n  ", "\n");

@@ -106,9 +106,9 @@ pub fn lex_string(input: &str) -> LexResult<'_, Vec<core::DecoratedToken>> {
         tokens.push(core::DecoratedToken::new(t, loc));
     }
 
-    tokens.push(core::DecoratedToken::new(Token::Eof, 0));
+    let mut folded = tokens.into_iter().fold(vec![], fold_tokens);
 
-    let folded = tokens.into_iter().fold(vec![], fold_tokens);
+    folded.push(core::DecoratedToken::new(Token::Eof, input.len()));
 
     Ok((remaining, folded))
 }

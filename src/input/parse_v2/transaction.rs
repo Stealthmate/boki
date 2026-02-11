@@ -65,10 +65,11 @@ impl TransactionParser {
 
         let mut postings = vec![];
         loop {
+            let i = scanner.tell();
             if basic::parse_indent(scanner).is_err() {
+                scanner.seek(i)?;
                 break;
             }
-            let i = scanner.tell();
             let p = Self::parse_posting(scanner).map_err(|e| ParserError {
                 location: i,
                 details: core::ParserErrorDetails::Nested(
@@ -224,7 +225,7 @@ mod test {
             Token::LineSeparator,
         ]);
         let err = TransactionParser::parse(&mut scanner).expect_err("Should have failed.");
-        assert_eq!(err.location, 3);
+        assert_eq!(err.location, 2);
         let ParserErrorDetails::Nested(_, nested) = err.details else {
             panic!("Invalid error.");
         };

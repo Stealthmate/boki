@@ -106,7 +106,6 @@ where
 
     fn parse(&self, scanner: &mut TokenScanner) -> ParserResult<T> {
         let x = self.p1.parse(scanner)?;
-        println!("Terminated 1");
         self.p2.parse(scanner)?;
         Ok(x)
     }

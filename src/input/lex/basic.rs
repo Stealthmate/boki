@@ -24,8 +24,16 @@ pub fn lex_posting_separator(input: &str) -> LexResult<'_, Token> {
     Ok((input, Token::PostingSeparator))
 }
 
+fn lex_comment(input: &str) -> LexResult<'_, ()> {
+    let (input, _) = tag("//").parse(input)?;
+    let (input, _) = take_until("\n").parse(input)?;
+    Ok((input, ()))
+}
+
 pub fn lex_line_separator(input: &str) -> LexResult<'_, Token> {
-    let (input, _) = preceded(opt(whitespace::whitespace), tag("\n")).parse(input)?;
+    let (input, _) = opt(whitespace::whitespace).parse(input)?;
+    let (input, _) = opt(lex_comment).parse(input)?;
+    let (input, _) = tag("\n").parse(input)?;
     Ok((input, Token::LineSeparator))
 }
 
@@ -54,4 +62,17 @@ pub fn lex_yaml_matter(input: &str) -> LexResult<'_, Token> {
         )));
     };
     Ok((input, Token::YamlMatter(parsed)))
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn test_line_with_comment() {
+        let input = "   // foobar\n";
+        let (rest, t) = lex_line_separator(input).expect("Failed.");
+        assert!(matches!(t, Token::LineSeparator));
+        assert!(rest.is_empty());
+    }
 }

@@ -109,11 +109,11 @@ pub fn lex_string(input: &str) -> LexResult<'_, Vec<core::DecoratedToken>> {
             break;
         }
 
-        let Ok((rest, t)) = lex_single_token(remaining) else {
-            break;
-        };
-        remaining = rest;
         let loc = input.len() - remaining.len();
+
+        let (rest, t) = lex_single_token(remaining)?;
+
+        remaining = rest;
         if let Token::LineSeparator = &t {
             let (rest, _) = opt(whitespace::linespace).parse(rest)?;
             remaining = rest;

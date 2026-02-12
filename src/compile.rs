@@ -20,7 +20,7 @@ pub enum CompilationError {
 }
 
 impl CompilationError {
-    pub fn from_str(s: &str) -> Self {
+    pub fn from_string(s: &str) -> Self {
         CompilationError::GeneralError(s.to_string())
     }
 }

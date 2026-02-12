@@ -27,7 +27,9 @@ impl TransactionCompiler {
 
         let n_postings = postings.len();
         if n_postings < 2 {
-            return Err(CompilationError::from_str("Must have 2 or more postings."));
+            return Err(CompilationError::from_string(
+                "Must have 2 or more postings.",
+            ));
         }
 
         let mut out_postings: Vec<output::Posting> = repeat(output::Posting::default())
@@ -44,7 +46,7 @@ impl TransactionCompiler {
             p_out.amount = p_in.amount.unwrap_or(0);
             if p_in.amount.is_none() {
                 if i_empty_amount.is_some() {
-                    return Err(CompilationError::from_str(
+                    return Err(CompilationError::from_string(
                         "Only a single posting can have an empty amount.",
                     ));
                 }
@@ -70,7 +72,7 @@ impl TransactionCompiler {
             .iter()
             .any(|(_, a)| *a != 0)
         {
-            return Err(CompilationError::from_str("Unbalanced transaction."));
+            return Err(CompilationError::from_string("Unbalanced transaction."));
         }
 
         Ok(())
@@ -79,13 +81,15 @@ impl TransactionCompiler {
     pub fn compile(t: &ast::Transaction, journal: &mut output::Journal) -> CompilationResult<()> {
         let n_postings = t.postings.len();
         if n_postings < 2 {
-            return Err(CompilationError::from_str("Must have 2 or more postings."));
+            return Err(CompilationError::from_string(
+                "Must have 2 or more postings.",
+            ));
         }
 
         let (mut postings, i_empty_amount) = Self::validate_postings(&t.postings, journal)?;
         let unbalanced_commodities = Self::find_unbalanced_commodities(&postings);
         if unbalanced_commodities.len() > 1 {
-            return Err(CompilationError::from_str(
+            return Err(CompilationError::from_string(
                 "Only a single commodity can be unbalanced.",
             ));
         }
@@ -97,7 +101,7 @@ impl TransactionCompiler {
             let (commodity, amount) =
                 unbalanced_commodity.unwrap_or((posting.commodity.clone(), 0));
             if posting.commodity != commodity {
-                return Err(CompilationError::from_str(
+                return Err(CompilationError::from_string(
                     "Empty posting commodity is different than unbalanced commodity.",
                 ));
             }

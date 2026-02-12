@@ -1,5 +1,5 @@
 use super::CompilationResult;
-use crate::output;
+use crate::contracts::output;
 
 pub struct SetAttributeCompiler;
 
@@ -20,7 +20,7 @@ impl SetAttributeCompiler {
 #[cfg(test)]
 mod test {
     use super::SetAttributeCompiler;
-    use crate::output;
+    use crate::contracts::output;
 
     #[test]
     fn test_set_default_commodity() {

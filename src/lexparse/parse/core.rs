@@ -1,4 +1,4 @@
-use crate::input::contracts::tokens;
+use crate::lexparse::contracts::tokens;
 
 #[derive(Debug)]
 pub enum ParserErrorDetails {

@@ -8,8 +8,8 @@
 //! if parsing occurs in a streaming or complete fashion, nor does it consider
 //! how to handle errors which happen while generating the AST.
 
-use crate::input::contracts::ast;
-use crate::output::{self};
+use crate::contracts::ast;
+use crate::contracts::output;
 
 mod set_attribute;
 mod transaction;
@@ -66,14 +66,14 @@ mod test {
     fn test_compile_simple() {
         let node = ast::ASTNode::Transaction(sample_transaction());
         let mut journal = output::Journal::default();
-        let result = compile_node(&node, &mut journal).expect("Compilation failed.");
+        compile_node(&node, &mut journal).expect("Compilation failed.");
     }
 
     #[test]
     fn test_compile_node_simple_transaction() {
         let node = ast::ASTNode::Transaction(sample_transaction());
         let mut journal = output::Journal::default();
-        let result = compile_node(&node, &mut journal).expect("Compilation failed.");
+        compile_node(&node, &mut journal).expect("Compilation failed.");
 
         assert_eq!(journal.transactions.len(), 1);
     }

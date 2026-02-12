@@ -1,7 +1,7 @@
-use crate::input::contracts::ast;
-use crate::input::parse_v2::{basic, combinators, core};
+use crate::contracts::ast;
+use crate::lexparse::parse::{basic, combinators, core};
 
-use crate::input::parse_v2::core::{Parser, ParserError};
+use crate::lexparse::parse::core::{Parser, ParserError};
 
 pub struct TransactionParser;
 
@@ -87,8 +87,8 @@ impl TransactionParser {
 #[cfg(test)]
 mod test {
     use super::TransactionParser;
-    use crate::input::contracts::tokens::{Timestamp, Token};
-    use crate::input::parse_v2::core::TokenScanner;
+    use crate::lexparse::contracts::tokens::{Timestamp, Token};
+    use crate::lexparse::parse::core::TokenScanner;
 
     fn sample_timestamp() -> Timestamp {
         Timestamp::parse_from_rfc3339("2026-01-02T03:04:05.000+09:00").unwrap()
@@ -199,7 +199,7 @@ mod test {
 
     #[test]
     fn test_invalid_posting() {
-        use crate::input::parse_v2::core::ParserErrorDetails;
+        use crate::lexparse::parse::core::ParserErrorDetails;
 
         let ts = sample_timestamp();
         let mut scanner = TokenScanner::from_slice(&[

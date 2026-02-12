@@ -1,4 +1,4 @@
-use crate::input::contracts::tokens::Token;
+use crate::lexparse::contracts::tokens::Token;
 
 pub type LexResult<'a, T> = nom::IResult<&'a str, T, nom_language::error::VerboseError<&'a str>>;
 

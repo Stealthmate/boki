@@ -1,6 +1,6 @@
-use crate::input::contracts::tokens;
+use crate::lexparse::contracts::tokens;
 
-use crate::input::parse_v2::core::{
+use crate::lexparse::parse::core::{
     get_next, ParserError, ParserErrorDetails, ParserResult, TokenScanner,
 };
 

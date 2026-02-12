@@ -7,7 +7,7 @@
 //!
 //! TODO: actual contract of the lexer
 
-use crate::input::contracts::tokens::{self, Token};
+use crate::lexparse::contracts::tokens::{self, Token};
 use nom::combinator::opt;
 use nom::Parser;
 
@@ -115,8 +115,8 @@ pub fn lex_string(input: &str) -> LexResult<'_, Vec<core::DecoratedToken>> {
 
 #[cfg(test)]
 mod test {
-    use crate::input::contracts::tokens::Token;
-    use crate::input::lex::lex_string;
+    use crate::lexparse::contracts::tokens::Token;
+    use crate::lexparse::lex::lex_string;
 
     #[test]
     fn test_inserts_eof_token_at_end() {

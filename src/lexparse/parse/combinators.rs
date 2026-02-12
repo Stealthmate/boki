@@ -1,4 +1,4 @@
-use crate::input::parse_v2::core::{Parser, ParserError, ParserResult, TokenScanner};
+use crate::lexparse::parse::core::{Parser, ParserError, ParserResult, TokenScanner};
 struct ManyParser<P> {
     parser: P,
 }
@@ -163,9 +163,9 @@ where
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::input::{
+    use crate::lexparse::{
         contracts::tokens,
-        parse_v2::core::{ParserError, ParserErrorDetails},
+        parse::core::{ParserError, ParserErrorDetails},
     };
 
     fn parse_fail(scanner: &mut TokenScanner) -> ParserResult<()> {

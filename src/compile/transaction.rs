@@ -1,6 +1,6 @@
 use super::{CompilationError, CompilationResult};
-use crate::input::contracts::ast;
-use crate::output;
+use crate::contracts::ast;
+use crate::contracts::output;
 use std::collections::HashMap;
 
 pub struct TransactionCompiler;
@@ -124,8 +124,7 @@ impl TransactionCompiler {
 #[cfg(test)]
 mod test {
     use super::super::CompilationResult;
-    use crate::input::contracts::ast;
-    use crate::output;
+    use crate::contracts::{ast, output};
 
     fn compile_transaction(
         t: &ast::Transaction,
@@ -160,7 +159,7 @@ mod test {
     fn test_simple() {
         let t = sample_transaction();
         let mut journal = output::Journal::default();
-        let result = compile_transaction(&t, &mut journal).expect("Failed.");
+        compile_transaction(&t, &mut journal).expect("Failed.");
 
         let j_t = journal.transactions.first().expect("Failed.");
         assert_eq!(j_t.header.timestamp, t.header.timestamp);
@@ -182,7 +181,7 @@ mod test {
 
         journal.header.default_commodity = "JPY".to_string();
 
-        let result = compile_transaction(&t, &mut journal).expect("Failed.");
+        compile_transaction(&t, &mut journal).expect("Failed.");
 
         let j_t = journal.transactions.first().expect("Failed.");
         assert_eq!(j_t.postings[0].commodity, "JPY".to_string());
@@ -195,7 +194,7 @@ mod test {
 
         let mut journal = output::Journal::default();
 
-        let result = compile_transaction(&t, &mut journal).expect("Failed.");
+        compile_transaction(&t, &mut journal).expect("Failed.");
 
         let j_t = journal.transactions.first().expect("Failed.");
         assert_eq!(j_t.postings[0].amount, 1000);
@@ -209,7 +208,7 @@ mod test {
 
         let mut journal = output::Journal::default();
 
-        let result = compile_transaction(&t, &mut journal).expect("Failed.");
+        compile_transaction(&t, &mut journal).expect("Failed.");
 
         let j_t = journal.transactions.first().expect("Failed.");
         let attrs = &j_t.header.attributes;

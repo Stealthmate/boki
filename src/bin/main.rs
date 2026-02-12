@@ -4,7 +4,7 @@ use boki::utils::indent_string;
 use clap::{Parser, Subcommand};
 
 enum CLIError {
-    InputError(boki::input::InputError),
+    InputError(boki::lexparse::InputError),
     OtherError(String),
 }
 
@@ -23,8 +23,8 @@ impl std::fmt::Display for CLIError {
 
 type CLIResult<T> = Result<T, CLIError>;
 
-impl From<boki::input::InputError> for CLIError {
-    fn from(value: boki::input::InputError) -> Self {
+impl From<boki::lexparse::InputError> for CLIError {
+    fn from(value: boki::lexparse::InputError) -> Self {
         Self::InputError(value)
     }
 }
@@ -50,7 +50,7 @@ struct Cli {
 fn _main() -> CLIResult<()> {
     let cli = Cli::parse();
 
-    let journal = boki::input::compile_file(cli.file.to_str().unwrap())?;
+    let journal = boki::lexparse::compile_file(cli.file.to_str().unwrap())?;
 
     match &cli.command {
         Commands::Export { output } => {

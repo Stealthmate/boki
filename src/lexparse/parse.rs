@@ -11,8 +11,8 @@
 //! The caller should catch that error and re-attepmt parsing
 //! when more tokens are available.
 
-use crate::input::contracts::ast;
-use crate::input::contracts::tokens;
+use crate::contracts::ast;
+use crate::lexparse::contracts::tokens;
 
 mod basic;
 mod combinators;
@@ -68,8 +68,8 @@ pub fn parse_node(scanner: &mut TokenScanner) -> ParserResult<Option<ast::ASTNod
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::input::contracts::tokens::Token;
-    use crate::input::parse_v2::core;
+    use crate::lexparse::contracts::tokens::Token;
+    use crate::lexparse::parse::core;
 
     #[test]
     fn test_eof_token() {

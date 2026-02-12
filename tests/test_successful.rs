@@ -1,8 +1,7 @@
 use boki;
 
-fn compile(fp: &str) -> boki::lexparse::InputResult<boki::contracts::output::Journal> {
-    let content = std::fs::read_to_string(fp).expect("Could not open file.");
-    boki::lexparse::compile_string(&content)
+fn compile(fp: &str) -> boki::evaluate::EvaluateResult<boki::contracts::output::Journal> {
+    boki::evaluate::evaluate_file(fp)
 }
 
 #[rstest::rstest]

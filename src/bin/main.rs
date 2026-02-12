@@ -1,33 +1,23 @@
 use std::path::PathBuf;
 
-use boki::utils::indent_string;
 use clap::{Parser, Subcommand};
 
-enum CLIError {
-    InputError(boki::lexparse::InputError),
-    OtherError(String),
-}
+#[derive(Debug)]
+struct CLIError(String);
 
 impl std::fmt::Display for CLIError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match &self {
-            CLIError::InputError(e) => {
-                write!(f, "Input Error:\n{}", indent_string(&e.to_string()))?
-            }
-            CLIError::OtherError(e) => write!(f, "Other Error:\n{}", indent_string(e))?,
-        };
+        writeln!(f, "{}", self.0)
+    }
+}
 
-        Ok(())
+impl From<Box<boki::evaluate::EvaluateError>> for CLIError {
+    fn from(value: Box<boki::evaluate::EvaluateError>) -> Self {
+        Self(format!("{}", *value))
     }
 }
 
 type CLIResult<T> = Result<T, CLIError>;
-
-impl From<boki::lexparse::InputError> for CLIError {
-    fn from(value: boki::lexparse::InputError) -> Self {
-        Self::InputError(value)
-    }
-}
 
 #[derive(Subcommand)]
 enum Commands {
@@ -50,12 +40,12 @@ struct Cli {
 fn _main() -> CLIResult<()> {
     let cli = Cli::parse();
 
-    let journal = boki::lexparse::compile_file(cli.file.to_str().unwrap())?;
+    let journal = boki::evaluate::evaluate_file(cli.file.to_str().unwrap())?;
 
     match &cli.command {
         Commands::Export { output } => {
             let output_str =
-                serde_json::to_string(&journal).map_err(|e| CLIError::OtherError(e.to_string()))?;
+                serde_json::to_string(&journal).map_err(|e| CLIError(e.to_string()))?;
             match output {
                 None => println!("{output_str}"),
                 Some(x) => std::fs::write(x, output_str).expect("Failed to write output file."),

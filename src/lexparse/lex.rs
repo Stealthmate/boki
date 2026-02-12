@@ -75,6 +75,12 @@ fn fold_tokens(
     match (last.token().name(), t.token().name()) {
         // consecutive newlines are combined into one
         (tokens::TOKEN_NAME_LINE_SEPARATOR, tokens::TOKEN_NAME_LINE_SEPARATOR) => a,
+        // indent followed by newline is considered as a single newline
+        (tokens::TOKEN_NAME_INDENT, tokens::TOKEN_NAME_LINE_SEPARATOR) => {
+            let i = a.len();
+            a[i - 1] = t;
+            a
+        }
         // Indent not following a newline is skipped
         (n, tokens::TOKEN_NAME_INDENT) if n != tokens::TOKEN_NAME_LINE_SEPARATOR => a,
         _ => {

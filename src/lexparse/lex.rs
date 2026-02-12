@@ -77,8 +77,17 @@ fn fold_tokens(
         (tokens::TOKEN_NAME_LINE_SEPARATOR, tokens::TOKEN_NAME_LINE_SEPARATOR) => a,
         // indent followed by newline is considered as a single newline
         (tokens::TOKEN_NAME_INDENT, tokens::TOKEN_NAME_LINE_SEPARATOR) => {
-            let i = a.len();
-            a[i - 1] = t;
+            let mut i = a.pop().unwrap().location();
+            // The second-to-last token could be a newline. In that case, we pop that as well.
+            if a.last()
+                .map(|t| matches!(t.token(), Token::LineSeparator))
+                .unwrap_or(false)
+            {
+                i = a.pop().unwrap().location();
+            }
+
+            // Finally we put a newline at the end.
+            a.push(core::DecoratedToken::new(Token::LineSeparator, i));
             a
         }
         // Indent not following a newline is skipped

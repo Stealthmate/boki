@@ -1,5 +1,0 @@
-set default_commodity JPY
-
-2025-01-01
-  assets/cce/cash;;                    -1,000
-  expense;;                             1,000

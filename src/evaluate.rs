@@ -5,30 +5,12 @@ use crate::compile;
 use crate::contracts::output;
 use crate::lexparse;
 
-#[derive(Clone, Debug)]
-enum EvaluateErrorContext {
-    File(String),
-}
+mod error;
 
-#[derive(Debug)]
-enum EvaluateErrorDetails {
-    LexParseError(lexparse::LexParseError),
-    CompileError(compile::CompilationError),
-}
+pub use error::EvaluateError;
+use error::{EvaluateErrorContext, EvaluateErrorDetails};
 
-#[derive(Debug)]
-pub struct EvaluateError {
-    context: EvaluateErrorContext,
-    details: EvaluateErrorDetails,
-}
-
-impl std::fmt::Display for EvaluateError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        writeln!(f, "TODO")
-    }
-}
-
-pub type EvaluateResult<T> = Result<T, Box<EvaluateError>>;
+pub type EvaluateResult<T> = Result<T, Box<error::EvaluateError>>;
 
 pub fn evaluate_file(filename: &str) -> EvaluateResult<output::Journal> {
     let context = EvaluateErrorContext::File(filename.to_string());

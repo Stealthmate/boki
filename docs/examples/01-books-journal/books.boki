@@ -1,7 +1,7 @@
 set default_commodity USD // Any time we do not specify a commodity, boki will assume we mean USD.
 
 2026-01-01
-// You can include arbitrary YAML segments in transactions!
+  // You can include arbitrary YAML segments in transactions!
   ---
   book: The Art of Computer Programming 1
   new: true

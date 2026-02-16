@@ -1,5 +1,5 @@
-use super::core::LexResult;
 use crate::lexparse::contracts::tokens::Token;
+use crate::lexparse::lex::core::{NomResult, StringScanner};
 use crate::lexparse::lex::whitespace;
 use nom::bytes::complete::is_a;
 use nom::combinator::{opt, recognize};
@@ -10,7 +10,7 @@ const ALPHA_UNDERSCORE: &str = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJQKLMNOPQRSTU
 const ALPHA_UNDERSCORE_DIGIT: &str =
     "abcdefghijklmnopqrstuvwxyzABCDEFGHIJQKLMNOPQRSTUVWXYZ_0123456789";
 
-pub fn lex(input: &str) -> LexResult<'_, Token> {
+pub fn lex(input: StringScanner) -> NomResult<Token> {
     let (input, x) = preceded(
         opt(whitespace::whitespace),
         recognize(pair(
@@ -20,7 +20,7 @@ pub fn lex(input: &str) -> LexResult<'_, Token> {
     )
     .parse(input)?;
 
-    Ok((input, Token::Identifier(x.to_string())))
+    Ok((input, Token::Identifier(x.as_str().to_string())))
 }
 
 #[cfg(test)]
@@ -30,7 +30,7 @@ mod test {
     #[case::alpha_alphanum("f123")]
     #[case::underscore_prefix("_f123")]
     fn test_identifier_succeeds(#[case] input: &str) {
-        let (rest, output) = super::lex(input).expect("Failed.");
+        let (rest, output) = super::lex(input.into()).expect("Failed.");
         let super::Token::Identifier(x) = output else {
             panic!("Should have been an identifier.");
         };
@@ -39,7 +39,7 @@ mod test {
 
     #[test]
     fn test_identifier_leading_whitespace() {
-        let (rest, output) = super::lex("   foo").expect("Failed.");
+        let (rest, output) = super::lex("   foo".into()).expect("Failed.");
         let super::Token::Identifier(x) = output else {
             panic!("Should have been an identifier.");
         };
@@ -49,6 +49,6 @@ mod test {
     #[rstest::rstest]
     #[case::numeric_prefix("1asfasf")]
     fn test_identifier_fails(#[case] input: &str) {
-        super::lex(input).expect_err("Failed.");
+        super::lex(input.into()).expect_err("Failed.");
     }
 }

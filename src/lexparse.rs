@@ -14,11 +14,9 @@ use error::{LexParseErrorContext, LexParseErrorDetails};
 pub type LexParseResult<T> = Result<T, Box<LexParseError>>;
 
 fn lexparse(context: LexParseErrorContext) -> LexParseResult<Vec<ast::ASTNode>> {
-    let (_, tokens) = lex::lex_string(context.content()).map_err(|e| LexParseError {
+    let tokens = lex::lex_string(context.content()).map_err(|e| LexParseError {
         context: context.clone(),
-        details: LexParseErrorDetails::Lex {
-            details: e.to_string(),
-        },
+        details: LexParseErrorDetails::Lex { details: e },
     })?;
     let the_tokens: Vec<contracts::tokens::Token> =
         tokens.iter().map(|x| x.token().clone()).collect();

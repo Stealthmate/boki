@@ -23,10 +23,10 @@ impl LexParseErrorContext {
 #[derive(Debug)]
 pub(crate) enum LexParseErrorDetails {
     Lex {
-        details: String, // TODO: proper type
+        details: lex::LexerError,
     },
     Parse {
-        tokens: Vec<lex::core::DecoratedToken>,
+        tokens: Vec<lex::DecoratedToken>,
         details: parse::core::ParserError,
     },
     Other(String),
@@ -40,17 +40,19 @@ pub struct LexParseError {
 
 impl LexParseError {
     fn get_position_in_content(&self, location: usize) -> (usize, usize) {
+        println!("str location: {location}");
         let mut i = 0;
         let mut last_line = 0;
         for (j, line) in self.context.content().split("\n").enumerate() {
-            i += line.len() + 1;
             last_line = j;
-            if i > location {
+            let start_of_next_line = i + line.len() + 1;
+            if start_of_next_line > location {
                 break;
             }
+            i = start_of_next_line;
         }
 
-        (last_line, i - location)
+        (last_line, location - i)
     }
 
     fn get_location_string(&self) -> String {
@@ -64,17 +66,58 @@ impl LexParseError {
             }
         };
 
-        if let LexParseErrorDetails::Parse { tokens, details } = &self.details {
-            println!("Token location: {}", details.location);
-            let raw_loc = tokens
-                .get(details.location)
-                .map(|t| t.location())
-                .unwrap_or(self.context.content().len());
-            let p = self.get_position_in_content(raw_loc);
-            s += &format!("{}:{}", p.0, p.1);
+        match &self.details {
+            LexParseErrorDetails::Parse { tokens, details } => {
+                println!("Token location: {}", details.location);
+                let raw_loc = tokens
+                    .get(details.location)
+                    .map(|t| t.location())
+                    .unwrap_or(self.context.content().len());
+                let p = self.get_position_in_content(raw_loc);
+                s += &format!("{}:{}", p.0, p.1);
+            }
+            LexParseErrorDetails::Lex { details } => {
+                let p = self.get_position_in_content(details.location);
+                s += &format!("{}:{}", p.0, p.1);
+            }
+            _ => {}
         };
 
         s
+    }
+
+    fn arrow_to(&self, line: &str, charloc: usize) -> Vec<String> {
+        let mut lines = vec![];
+        println!("charloc {charloc}");
+        lines.push(format!("        {}Λ", " ".repeat(charloc)));
+        lines.push(format!("        {}│", " ".repeat(charloc)));
+        lines.push(format!("  here  {}┘", "─".repeat(charloc)));
+
+        lines
+    }
+
+    fn get_surrounding_lines_for_line(&self, n: usize, charloc: usize) -> String {
+        let offset = 5;
+        let all_lines: Vec<&str> = self.context.content().split("\n").collect();
+
+        let min_line = n.saturating_sub(offset);
+        let max_line = if n + offset <= all_lines.len() {
+            n + offset
+        } else {
+            all_lines.len()
+        };
+
+        let mut the_lines: Vec<String> = vec![];
+        for (i, line) in all_lines[min_line..max_line].iter().enumerate() {
+            if i == n - min_line {
+                the_lines.push(format!("        {line}"));
+                the_lines.extend(self.arrow_to(line, charloc));
+            } else {
+                the_lines.push(format!("        {line}"));
+            }
+        }
+
+        the_lines.join("\n")
     }
 
     fn get_surrounding_lines(&self) -> Option<String> {
@@ -85,28 +128,11 @@ impl LexParseError {
                     .map(|t| t.location())
                     .unwrap_or(self.context.content().len());
                 let p = self.get_position_in_content(raw_loc);
-                let the_line = p.0;
-
-                let offset = 5;
-                let all_lines: Vec<&str> = self.context.content().split("\n").collect();
-
-                let min_line = the_line.saturating_sub(offset);
-                let max_line = if the_line + offset <= all_lines.len() {
-                    the_line + offset
-                } else {
-                    all_lines.len()
-                };
-
-                let mut the_lines: Vec<String> = vec![];
-                for (i, line) in all_lines[min_line..max_line].iter().enumerate() {
-                    if the_line - min_line == i {
-                        the_lines.push(format!("here -> {line}"));
-                    } else {
-                        the_lines.push(format!("        {line}"));
-                    }
-                }
-
-                Some(the_lines.join("\n"))
+                Some(self.get_surrounding_lines_for_line(p.0, p.1))
+            }
+            LexParseErrorDetails::Lex { details } => {
+                let p = self.get_position_in_content(details.location);
+                Some(self.get_surrounding_lines_for_line(p.0, p.1))
             }
             _ => None,
         }
@@ -136,6 +162,25 @@ impl LexParseError {
 
         s
     }
+
+    fn format_lex_error(error: &lex::LexerError) -> String {
+        let mut s = String::new();
+        match &error.details {
+            lex::LexerErrorDetails::InternalError(_) => {
+                s += "Internal error.";
+            }
+            lex::LexerErrorDetails::NothingMatched => {
+                s += "Encountered invalid characters. Previous tokens: ";
+                s += &error
+                    .previous_tokens
+                    .iter()
+                    .map(|t| format!("({}, {})", t.location(), t.token().name()))
+                    .collect::<Vec<String>>()
+                    .join(", ");
+            }
+        }
+        s
+    }
 }
 
 impl std::fmt::Display for LexParseError {
@@ -151,7 +196,10 @@ impl std::fmt::Display for LexParseError {
         }
 
         match &self.details {
-            LexParseErrorDetails::Lex { details } => writeln!(f, "  {details}")?,
+            LexParseErrorDetails::Lex { details } => {
+                let x = indent_string(&Self::format_lex_error(details));
+                writeln!(f, "  Lexer error:\n{}", indent_string(&x))?
+            }
             LexParseErrorDetails::Parse { tokens, details } => {
                 let x = indent_string(&Self::format_parse_error(details));
                 writeln!(f, "  ParserError:\n{}", indent_string(&x))?;

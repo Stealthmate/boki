@@ -1,4 +1,4 @@
-use super::core::LexResult;
+use super::core::{NomResult, StringScanner};
 use crate::lexparse::contracts::tokens::Token;
 use crate::lexparse::lex::whitespace;
 use nom::bytes::complete::tag;
@@ -8,8 +8,8 @@ use nom::multi::many0;
 use nom::sequence::preceded;
 use nom::Parser;
 
-pub fn lex(input: &str) -> LexResult<'_, Token> {
-    let original_input = input;
+pub fn lex(input: StringScanner) -> NomResult<Token> {
+    let original_input = input.clone();
 
     let (input, _) = opt(whitespace::whitespace).parse(input)?;
 
@@ -20,9 +20,14 @@ pub fn lex(input: &str) -> LexResult<'_, Token> {
     let numstr = format!(
         "{}{}{}",
         sign.unwrap_or('+'),
-        initial_digits,
-        rest_digits.join("")
+        initial_digits.as_str(),
+        rest_digits
+            .iter()
+            .map(|x| x.as_str())
+            .collect::<Vec<&str>>()
+            .join("")
     );
+
     let amount: i64 = str::parse(&numstr).map_err(|e| {
         nom::Err::Error(nom::error::make_error(
             original_input,
@@ -40,8 +45,8 @@ mod test {
     #[case::positive_integer("+1000", 1000)]
     #[case::negative_integer("-1000", -1000)]
     #[case::integer_with_thousands_separators("1,000,000", 1_000_000)]
-    fn test_identifier_succeeds(#[case] input: &str, #[case] result: i64) {
-        let (rest, output) = super::lex(input).expect("Failed.");
+    fn test_amount_succeeds(#[case] input: &str, #[case] result: i64) {
+        let (rest, output) = super::lex(input.into()).expect("Failed.");
         let super::Token::Amount(x) = output else {
             panic!("Should have been an identifier.");
         };
@@ -50,7 +55,7 @@ mod test {
 
     #[rstest::rstest]
     #[case::non_numeric("asfasf")]
-    fn test_identifier_fails(#[case] input: &str) {
-        super::lex(input).expect_err("Failed.");
+    fn test_amount_fails(#[case] input: &str) {
+        super::lex(input.into()).expect_err("Failed.");
     }
 }

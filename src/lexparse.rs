@@ -20,7 +20,7 @@ fn lexparse(context: LexParseErrorContext) -> LexParseResult<Vec<ast::ASTNode>> 
     })?;
     let the_tokens: Vec<contracts::tokens::Token> =
         tokens.iter().map(|x| x.token().clone()).collect();
-    let mut scanner = parse::core::TokenScanner::from_slice(&the_tokens);
+    let mut scanner = parse::TokenScanner::from_slice(&the_tokens);
     let mut nodes = vec![];
 
     loop {

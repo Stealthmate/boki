@@ -1,4 +1,4 @@
-use crate::lexparse::parse::core::{ParserError, ParserErrorDetails};
+use crate::lexparse::parse::{ParserError, ParserErrorDetails};
 
 use crate::lexparse::lex;
 use crate::lexparse::parse;
@@ -27,7 +27,7 @@ pub(crate) enum LexParseErrorDetails {
     },
     Parse {
         tokens: Vec<lex::DecoratedToken>,
-        details: parse::core::ParserError,
+        details: parse::ParserError,
     },
     Other(String),
 }

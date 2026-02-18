@@ -16,11 +16,12 @@ use crate::lexparse::contracts::tokens;
 
 mod basic;
 mod combinators;
-pub mod core;
+mod core;
 mod set_attributes;
 mod transaction;
 
-use core::{Parser, ParserResult, TokenScanner};
+use core::{Parser, ParserResult};
+pub(super) use core::{ParserError, ParserErrorDetails, TokenScanner};
 
 fn parse_initial_whitespace_and_comments(scanner: &mut TokenScanner) -> ParserResult<()> {
     loop {

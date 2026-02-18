@@ -11,7 +11,7 @@
 //! The caller should catch that error and re-attepmt parsing
 //! when more tokens are available.
 
-use crate::contracts::ast;
+use crate::ast;
 use crate::lexparse::contracts::tokens;
 
 mod basic;

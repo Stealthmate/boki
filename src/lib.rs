@@ -8,8 +8,9 @@
 //! 2. Public modules must never form a dependency cycle.
 //! 3. Public modules must be used directly either by the binary, or by two or more other public modules.
 
+pub mod ast;
 pub mod compile;
-pub mod contracts;
 pub mod evaluate;
 pub mod lexparse;
+pub mod output;
 pub mod utils;

@@ -1,6 +1,6 @@
 use super::{CompilationError, CompilationResult};
-use crate::contracts::ast;
-use crate::contracts::output;
+use crate::ast;
+use crate::output;
 use std::collections::HashMap;
 
 pub struct TransactionCompiler;
@@ -128,7 +128,7 @@ impl TransactionCompiler {
 #[cfg(test)]
 mod test {
     use super::super::CompilationResult;
-    use crate::contracts::{ast, output};
+    use crate::{ast, output};
 
     fn compile_transaction(
         t: &ast::Transaction,

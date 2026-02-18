@@ -2,8 +2,8 @@
 #![allow(unused_variables)]
 
 use crate::compile;
-use crate::contracts::output;
 use crate::lexparse;
+use crate::output;
 
 mod error;
 

@@ -1,4 +1,4 @@
-use crate::contracts::ast;
+use crate::ast;
 use crate::lexparse::parse::{basic, combinators, core};
 
 use crate::lexparse::parse::core::{Parser, ParserError};

@@ -1,7 +1,7 @@
 #![allow(dead_code)]
 #![allow(unused_variables)]
 
-use crate::contracts::ast;
+use crate::ast;
 
 mod contracts;
 mod error;

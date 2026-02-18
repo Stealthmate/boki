@@ -8,8 +8,8 @@
 //! if parsing occurs in a streaming or complete fashion, nor does it consider
 //! how to handle errors which happen while generating the AST.
 
-use crate::contracts::ast;
-use crate::contracts::output;
+use crate::ast;
+use crate::output;
 
 mod set_attribute;
 mod transaction;

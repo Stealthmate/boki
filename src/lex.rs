@@ -1,16 +1,13 @@
-//! The lexer stage.
+//! # The Lexer
 //!
-//! This module is responsible for producing Tokens from
-//! a string of characters.
-//!
-//! The lexer depends only on the Token type.
-//!
-//! TODO: actual contract of the lexer
+//! The lexer takes as input a string of characters and produces a list of
+//! decorated tokens, i.e. [DecoratedToken]. It does only that, without transforming
+//! the list of tokens in _any_ way, except for inserting a [Token::Eof] token at the end.
 
 use nom::combinator::opt;
 use nom::Parser;
 
-use crate::tokens::{self, Token};
+use crate::tokens::Token;
 
 mod amount;
 mod basic;
@@ -29,7 +26,7 @@ pub type TokenLocation = usize;
 pub struct DecoratedToken(Token, TokenLocation);
 
 impl DecoratedToken {
-    fn new(t: Token, i: TokenLocation) -> Self {
+    pub fn new(t: Token, i: TokenLocation) -> Self {
         Self(t, i)
     }
 
@@ -88,39 +85,6 @@ fn lex_single_token(input: StringScanner) -> NomResult<Token> {
     Ok(result)
 }
 
-fn fold_tokens(mut a: Vec<DecoratedToken>, t: DecoratedToken) -> Vec<DecoratedToken> {
-    let Some(last) = a.last() else {
-        a.push(t);
-        return a;
-    };
-
-    match (last.token().name(), t.token().name()) {
-        // consecutive newlines are combined into one
-        (tokens::TOKEN_NAME_LINE_SEPARATOR, tokens::TOKEN_NAME_LINE_SEPARATOR) => a,
-        // indent followed by newline is considered as a single newline
-        (tokens::TOKEN_NAME_INDENT, tokens::TOKEN_NAME_LINE_SEPARATOR) => {
-            let mut i = a.pop().unwrap().location();
-            // The second-to-last token could be a newline. In that case, we pop that as well.
-            if a.last()
-                .map(|t| matches!(t.token(), Token::LineSeparator))
-                .unwrap_or(false)
-            {
-                i = a.pop().unwrap().location();
-            }
-
-            // Finally we put a newline at the end.
-            a.push(DecoratedToken::new(Token::LineSeparator, i));
-            a
-        }
-        // Indent not following a newline is skipped
-        (n, tokens::TOKEN_NAME_INDENT) if n != tokens::TOKEN_NAME_LINE_SEPARATOR => a,
-        _ => {
-            a.push(t);
-            a
-        }
-    }
-}
-
 fn nom_lex_string(input: StringScanner) -> NomResult<Vec<DecoratedToken>> {
     let (input, _) = opt(whitespace::linespace).parse(input)?;
 
@@ -151,11 +115,9 @@ fn nom_lex_string(input: StringScanner) -> NomResult<Vec<DecoratedToken>> {
         tokens.push(DecoratedToken::new(t, loc));
     }
 
-    let mut folded = tokens.into_iter().fold(vec![], fold_tokens);
+    tokens.push(DecoratedToken::new(Token::Eof, remaining.eof_idx()));
 
-    folded.push(DecoratedToken::new(Token::Eof, remaining.eof_idx()));
-
-    Ok((remaining, folded))
+    Ok((remaining, tokens))
 }
 
 pub fn lex_string(content: &str) -> LexerResult<Vec<DecoratedToken>> {

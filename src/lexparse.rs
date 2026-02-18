@@ -3,7 +3,7 @@
 
 use crate::ast;
 
-mod contracts;
+pub(self) mod contracts;
 mod error;
 mod lex;
 mod parse;

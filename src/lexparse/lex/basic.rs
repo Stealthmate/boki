@@ -1,5 +1,5 @@
-use crate::lexparse::contracts::tokens::{Keyword, Token};
 use crate::lexparse::lex::core::StringScanner;
+use crate::tokens::{Keyword, Token};
 use nom::branch::alt;
 use nom::bytes::complete::{tag, take_until};
 use nom::character::complete::none_of;

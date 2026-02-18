@@ -1,6 +1,6 @@
-use crate::lexparse::contracts::tokens::Token;
 use crate::lexparse::lex::core::{NomResult, StringScanner};
 use crate::lexparse::lex::whitespace;
+use crate::tokens::Token;
 use nom::bytes::complete::is_a;
 use nom::combinator::{opt, recognize};
 use nom::sequence::{pair, preceded};

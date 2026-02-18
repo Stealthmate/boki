@@ -1,5 +1,5 @@
-use crate::lexparse::contracts::tokens::{Timestamp, Token};
 use crate::lexparse::lex::core::{NomResult, StringScanner};
+use crate::tokens::{Timestamp, Token};
 
 use chrono::{DateTime, FixedOffset, NaiveDate, NaiveDateTime, NaiveTime};
 use nom::bytes::complete::take;

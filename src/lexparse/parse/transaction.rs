@@ -87,8 +87,8 @@ impl TransactionParser {
 #[cfg(test)]
 mod test {
     use super::TransactionParser;
-    use crate::lexparse::contracts::tokens::{Timestamp, Token};
     use crate::lexparse::parse::core::TokenScanner;
+    use crate::tokens::{Timestamp, Token};
 
     fn sample_timestamp() -> Timestamp {
         Timestamp::parse_from_rfc3339("2026-01-02T03:04:05.000+09:00").unwrap()

@@ -1,5 +1,5 @@
-use crate::lexparse::contracts::tokens::Keyword;
 use crate::lexparse::parse::{basic, core};
+use crate::tokens::Keyword;
 
 use crate::lexparse::parse::core::TokenScanner;
 
@@ -23,7 +23,7 @@ impl SetAttributeParser {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::lexparse::contracts::tokens::{Keyword, Token};
+    use crate::tokens::{Keyword, Token};
 
     #[test]
     fn test_simple() {

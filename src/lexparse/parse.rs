@@ -12,7 +12,7 @@
 //! when more tokens are available.
 
 use crate::ast;
-use crate::lexparse::contracts::tokens;
+use crate::lexparse::tokens;
 
 mod basic;
 mod combinators;
@@ -69,8 +69,8 @@ pub fn parse_node(scanner: &mut TokenScanner) -> ParserResult<Option<ast::ASTNod
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::lexparse::contracts::tokens::Token;
     use crate::lexparse::parse::core;
+    use crate::tokens::Token;
 
     #[test]
     fn test_eof_token() {

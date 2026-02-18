@@ -1,4 +1,4 @@
-use crate::lexparse::contracts::tokens;
+use crate::tokens;
 
 use crate::lexparse::parse::core::{
     get_next, ParserError, ParserErrorDetails, ParserResult, TokenScanner,

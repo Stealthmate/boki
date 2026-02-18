@@ -163,10 +163,8 @@ where
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::lexparse::{
-        contracts::tokens,
-        parse::core::{ParserError, ParserErrorDetails},
-    };
+    use crate::lexparse::parse::core::{ParserError, ParserErrorDetails};
+    use crate::tokens;
 
     fn parse_fail(scanner: &mut TokenScanner) -> ParserResult<()> {
         Err(ParserError {

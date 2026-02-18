@@ -2,8 +2,8 @@
 #![allow(unused_variables)]
 
 use crate::ast;
+use crate::tokens;
 
-pub(self) mod contracts;
 mod error;
 mod lex;
 mod parse;
@@ -18,8 +18,7 @@ fn lexparse(context: LexParseErrorContext) -> LexParseResult<Vec<ast::ASTNode>> 
         context: context.clone(),
         details: LexParseErrorDetails::Lex { details: e },
     })?;
-    let the_tokens: Vec<contracts::tokens::Token> =
-        tokens.iter().map(|x| x.token().clone()).collect();
+    let the_tokens: Vec<tokens::Token> = tokens.iter().map(|x| x.token().clone()).collect();
     let mut scanner = parse::TokenScanner::from_slice(&the_tokens);
     let mut nodes = vec![];
 

@@ -1,6 +1,6 @@
 use super::core::{NomResult, StringScanner};
-use crate::lexparse::contracts::tokens::Token;
 use crate::lexparse::lex::whitespace;
+use crate::tokens::Token;
 use nom::bytes::complete::tag;
 use nom::character::complete::{digit1, one_of};
 use nom::combinator::opt;

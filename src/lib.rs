@@ -13,4 +13,5 @@ pub mod compile;
 pub mod evaluate;
 pub mod lexparse;
 pub mod output;
+pub mod tokens;
 pub mod utils;

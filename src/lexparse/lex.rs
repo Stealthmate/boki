@@ -8,11 +8,11 @@
 //! TODO: actual contract of the lexer
 
 use crate::lexparse::{
-    contracts::tokens::{self, Token},
     lex::{
         core::{NomResult, StringScanner},
         whitespace::whitespace,
     },
+    tokens::{self, Token},
 };
 use nom::combinator::opt;
 use nom::Parser;
@@ -172,7 +172,7 @@ pub fn lex_string(content: &str) -> LexerResult<Vec<DecoratedToken>> {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::lexparse::contracts::tokens::Token;
+    use crate::tokens::Token;
 
     #[test]
     fn test_inserts_eof_token_at_end() {

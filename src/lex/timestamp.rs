@@ -1,4 +1,4 @@
-use crate::lexparse::lex::core::{NomResult, StringScanner};
+use super::core::{NomResult, StringScanner};
 use crate::tokens::{Timestamp, Token};
 
 use chrono::{DateTime, FixedOffset, NaiveDate, NaiveDateTime, NaiveTime};
@@ -65,7 +65,7 @@ mod test {
     #[case::date("2026-01-01", "2026-01-01 00:00:00.000Z")]
     #[case::timestamp_with_timezone("2026-01-01 00:00:00.000+00:00", "2026-01-01 00:00:00.000Z")]
     fn test_succeeds(#[case] input: &str, #[case] timestamp: &str) {
-        let (rest, result) = lex(input.into()).expect("Failed.");
+        let (_, result) = lex(input.into()).expect("Failed.");
         assert_eq!(
             result,
             Token::Timestamp(DateTime::parse_from_rfc3339(timestamp).expect("Invalid test case."))

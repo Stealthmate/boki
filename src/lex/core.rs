@@ -219,7 +219,7 @@ impl nom::error::ParseError<StringScanner> for LexerError {
         }
     }
 
-    fn append(input: StringScanner, kind: nom::error::ErrorKind, other: Self) -> Self {
+    fn append(input: StringScanner, kind: nom::error::ErrorKind, _: Self) -> Self {
         Self {
             location: input.offset,
             details: LexerErrorDetails::InternalError(format!("{:#?}", kind)),
@@ -243,7 +243,7 @@ impl From<nom::Err<LexerError>> for LexerError {
 }
 
 impl From<nom::error::Error<LexerError>> for LexerError {
-    fn from(value: nom::error::Error<LexerError>) -> Self {
+    fn from(_: nom::error::Error<LexerError>) -> Self {
         LexerError {
             location: 0,
             details: LexerErrorDetails::InternalError("Incomplete".to_string()),
@@ -261,16 +261,5 @@ pub(crate) fn error_at(location: usize, details: LexerErrorDetails) -> nom::Err<
         location,
         details,
         previous_tokens: vec![],
-    })
-}
-
-pub fn error_with_previous_tokens(
-    error: nom::Err<LexerError>,
-    tokens: &[super::DecoratedToken],
-) -> nom::Err<LexerError> {
-    error.map(|e| LexerError {
-        location: e.location,
-        details: e.details.clone(),
-        previous_tokens: tokens.into(),
     })
 }

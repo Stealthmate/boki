@@ -1,5 +1,5 @@
 use super::core::{NomResult, StringScanner};
-use crate::lexparse::lex::whitespace;
+use super::whitespace;
 use crate::tokens::Token;
 use nom::bytes::complete::tag;
 use nom::character::complete::{digit1, one_of};
@@ -28,7 +28,7 @@ pub fn lex(input: StringScanner) -> NomResult<Token> {
             .join("")
     );
 
-    let amount: i64 = str::parse(&numstr).map_err(|e| {
+    let amount: i64 = str::parse(&numstr).map_err(|_| {
         nom::Err::Error(nom::error::make_error(
             original_input,
             nom::error::ErrorKind::IsNot,
@@ -46,7 +46,7 @@ mod test {
     #[case::negative_integer("-1000", -1000)]
     #[case::integer_with_thousands_separators("1,000,000", 1_000_000)]
     fn test_amount_succeeds(#[case] input: &str, #[case] result: i64) {
-        let (rest, output) = super::lex(input.into()).expect("Failed.");
+        let (_, output) = super::lex(input.into()).expect("Failed.");
         let super::Token::Amount(x) = output else {
             panic!("Should have been an identifier.");
         };

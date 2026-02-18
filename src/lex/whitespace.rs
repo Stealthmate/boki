@@ -1,4 +1,4 @@
-use crate::lexparse::lex::core::StringScanner;
+use super::core::StringScanner;
 
 use super::core::NomResult;
 use nom::bytes::complete::is_a;

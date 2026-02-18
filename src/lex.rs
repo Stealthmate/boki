@@ -7,15 +7,10 @@
 //!
 //! TODO: actual contract of the lexer
 
-use crate::lexparse::{
-    lex::{
-        core::{NomResult, StringScanner},
-        whitespace::whitespace,
-    },
-    tokens::{self, Token},
-};
 use nom::combinator::opt;
 use nom::Parser;
+
+use crate::tokens::{self, Token};
 
 mod amount;
 mod basic;
@@ -24,7 +19,7 @@ mod identifier;
 mod timestamp;
 mod whitespace;
 
-use core::LexerResult;
+use core::{LexerResult, NomResult, StringScanner};
 
 pub use core::{LexerError, LexerErrorDetails};
 

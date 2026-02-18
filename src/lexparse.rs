@@ -2,10 +2,10 @@
 #![allow(unused_variables)]
 
 use crate::ast;
+use crate::lex;
 use crate::tokens;
 
 mod error;
-mod lex;
 mod parse;
 
 pub use error::LexParseError;

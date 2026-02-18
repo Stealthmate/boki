@@ -1,5 +1,5 @@
-use crate::lexparse::lex::core::{NomResult, StringScanner};
-use crate::lexparse::lex::whitespace;
+use super::core::{NomResult, StringScanner};
+use super::whitespace;
 use crate::tokens::Token;
 use nom::bytes::complete::is_a;
 use nom::combinator::{opt, recognize};
@@ -30,7 +30,7 @@ mod test {
     #[case::alpha_alphanum("f123")]
     #[case::underscore_prefix("_f123")]
     fn test_identifier_succeeds(#[case] input: &str) {
-        let (rest, output) = super::lex(input.into()).expect("Failed.");
+        let (_, output) = super::lex(input.into()).expect("Failed.");
         let super::Token::Identifier(x) = output else {
             panic!("Should have been an identifier.");
         };
@@ -39,7 +39,7 @@ mod test {
 
     #[test]
     fn test_identifier_leading_whitespace() {
-        let (rest, output) = super::lex("   foo".into()).expect("Failed.");
+        let (_, output) = super::lex("   foo".into()).expect("Failed.");
         let super::Token::Identifier(x) = output else {
             panic!("Should have been an identifier.");
         };

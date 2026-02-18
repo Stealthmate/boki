@@ -1,4 +1,4 @@
-use crate::lexparse::lex::core::StringScanner;
+use super::core::StringScanner;
 use crate::tokens::{Keyword, Token};
 use nom::branch::alt;
 use nom::bytes::complete::{tag, take_until};
@@ -7,7 +7,7 @@ use nom::combinator::{opt, peek};
 use nom::sequence::{delimited, preceded};
 use nom::Parser;
 
-use crate::lexparse::lex::{core::NomResult, whitespace};
+use super::{core::NomResult, whitespace};
 
 pub fn lex_indent(input: StringScanner) -> NomResult<Token> {
     let (input, _) = tag("  ").parse(input)?;

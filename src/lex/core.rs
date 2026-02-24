@@ -1,8 +1,11 @@
+use crate::tokens::Token;
+
 #[derive(Clone, Debug)]
 pub struct StringScanner {
     content: std::sync::Arc<str>,
     offset: usize,
     limit: usize,
+    last_token: Option<Token>,
 }
 
 impl StringScanner {
@@ -24,6 +27,14 @@ impl StringScanner {
     pub fn eof_idx(&self) -> usize {
         self.content.len()
     }
+
+    pub fn set_last_token(&mut self, token: Token) {
+        self.last_token = Some(token);
+    }
+
+    pub fn get_last_token(&self) -> Option<&Token> {
+        self.last_token.as_ref()
+    }
 }
 
 impl From<&str> for StringScanner {
@@ -33,6 +44,7 @@ impl From<&str> for StringScanner {
             content: std::sync::Arc::from(value),
             offset: 0,
             limit,
+            last_token: None,
         }
     }
 }
@@ -133,6 +145,7 @@ impl nom::Input for StringScanner {
             content: self.content.clone(),
             offset: self.offset,
             limit,
+            last_token: self.last_token.clone(),
         }
     }
 
@@ -145,6 +158,7 @@ impl nom::Input for StringScanner {
             content: self.content.clone(),
             offset,
             limit: self.limit,
+            last_token: self.last_token.clone(),
         }
     }
 
@@ -159,11 +173,13 @@ impl nom::Input for StringScanner {
             content: self.content.clone(),
             offset: self.offset,
             limit: adj_index,
+            last_token: self.last_token.clone(),
         };
         let second = Self {
             content: self.content.clone(),
             offset: adj_index,
             limit: self.limit,
+            last_token: self.last_token.clone(),
         };
 
         (second, first)

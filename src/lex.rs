@@ -112,7 +112,8 @@ fn nom_lex_string(input: StringScanner) -> NomResult<Vec<DecoratedToken>> {
             let (rest, _) = opt(whitespace::linespace).parse(remaining)?;
             remaining = rest;
         };
-        tokens.push(DecoratedToken::new(t, loc));
+        tokens.push(DecoratedToken::new(t.clone(), loc));
+        remaining.set_last_token(t);
     }
 
     tokens.push(DecoratedToken::new(Token::Eof, remaining.eof_idx()));

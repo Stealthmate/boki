@@ -1,4 +1,4 @@
-use super::core::StringScanner;
+use super::core::{error_at, LexerErrorDetails, StringScanner};
 use crate::tokens::{Keyword, Token};
 use nom::branch::alt;
 use nom::bytes::complete::{tag, take_until};
@@ -10,6 +10,20 @@ use nom::Parser;
 use super::{core::NomResult, whitespace};
 
 pub fn lex_indent(input: StringScanner) -> NomResult<Token> {
+    let t = input.get_last_token();
+    match &t {
+        None => {}
+        Some(Token::LineSeparator) => {}
+        Some(_) => {
+            return Err(error_at(
+                input.location(),
+                LexerErrorDetails::InternalError(
+                    "Indent must be preceded by line separator.".to_string(),
+                ),
+            ))
+        }
+    }
+
     let (input, _) = tag("  ").parse(input)?;
     let (input, _) = peek(none_of("\n")).parse(input)?;
     Ok((input, Token::Indent))

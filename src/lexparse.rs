@@ -40,8 +40,6 @@ fn fold_tokens(
             a.push(lex::DecoratedToken::new(tokens::Token::LineSeparator, i));
             a
         }
-        // Indent not following a newline is skipped
-        (n, tokens::TOKEN_NAME_INDENT) if n != tokens::TOKEN_NAME_LINE_SEPARATOR => a,
         _ => {
             a.push(t);
             a

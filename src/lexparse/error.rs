@@ -1,6 +1,6 @@
+use crate::lex;
 use crate::lexparse::parse::{ParserError, ParserErrorDetails};
 
-use crate::lexparse::lex;
 use crate::lexparse::parse;
 
 use crate::utils::indent_string;
@@ -138,29 +138,87 @@ impl LexParseError {
         }
     }
 
-    fn format_parse_error(error: &ParserError) -> String {
-        let mut s = String::new();
-        match &error.details {
-            ParserErrorDetails::BranchingError(msg, errors) => {
-                s += "Could not parse the remaining tokens.\n";
-                for (i, e) in errors.iter().enumerate() {
-                    let e_str = indent_string(&Self::format_parse_error(e));
-                    s += &format!(
-                        "  parser #{} failed because\n{}\n\n",
-                        i + 1,
-                        indent_string(&e_str)
-                    );
-                }
+    fn append_error(
+        &self,
+        f: &mut std::fmt::Formatter,
+        location: usize,
+        msg: &str,
+    ) -> std::fmt::Result {
+        write!(f, "in ")?;
+
+        match &self.context {
+            LexParseErrorContext::File { filename, content } => {
+                write!(f, "file {filename}:")?;
             }
-            ParserErrorDetails::ExpectedSomethingElse(a, b) => {
-                s += &format!("Expected {a}, but found a {}", b.name());
-            }
-            _ => {
-                s += "TODO";
+            LexParseErrorContext::NakedString { content } => {
+                write!(f, "at position ")?;
             }
         };
 
-        s
+        let p = self.get_position_in_content(location);
+        writeln!(f, "{}:{}", p.0, p.1)?;
+
+        let surrounding_lines = self.get_surrounding_lines_for_line(p.0, p.1);
+        writeln!(f, "  =============")?;
+        writeln!(f, "{}", indent_string(&surrounding_lines))?;
+        writeln!(f, "  =============")?;
+        writeln!(f, "  {}", msg)?;
+        writeln!(f)?;
+        writeln!(f)?;
+
+        Ok(())
+    }
+
+    fn write_parse_error(
+        &self,
+        f: &mut std::fmt::Formatter,
+        tokens: &Vec<lex::DecoratedToken>,
+        error: &ParserError,
+    ) -> std::fmt::Result {
+        let location = tokens
+            .get(error.location)
+            .map(|t| t.location())
+            .unwrap_or(self.context.content().len());
+
+        match &error.details {
+            ParserErrorDetails::BranchingError(msg, errors) => {
+                self.append_error(f, location, "Could not parse the remaining tokens.")?;
+                for e in errors {
+                    self.write_parse_error(f, tokens, e)?;
+                }
+            }
+            ParserErrorDetails::ExpectedSomethingElse(a, b) => {
+                self.append_error(
+                    f,
+                    location,
+                    &format!("Expected {a}, but found {}", b.name()),
+                )?;
+            }
+            ParserErrorDetails::Nested(msg, nested_error) => {
+                self.append_error(f, location, msg)?;
+                self.write_parse_error(f, tokens, nested_error)?;
+            }
+            e => {
+                self.append_error(f, location, &format!("TODO: {e:#?}"))?;
+            }
+        };
+
+        Ok(())
+    }
+
+    fn write_error(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        writeln!(f, "LexParseError:")?;
+
+        match &self.details {
+            LexParseErrorDetails::Lex { details } => {
+                self.append_error(f, details.location, "Lex error.")?;
+            }
+            LexParseErrorDetails::Parse { tokens, details } => {
+                self.write_parse_error(f, tokens, details)?;
+            }
+            LexParseErrorDetails::Other(x) => writeln!(f, "  TODO: {x}")?,
+        };
+        Ok(())
     }
 
     fn format_lex_error(error: &lex::LexerError) -> String {
@@ -185,28 +243,6 @@ impl LexParseError {
 
 impl std::fmt::Display for LexParseError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        writeln!(f, "LexParseError:")?;
-        writeln!(f, "  in {}", self.get_location_string())?;
-
-        if let Some(surrounding_lines) = self.get_surrounding_lines() {
-            writeln!(f, "  =============")?;
-            writeln!(f, "{}", indent_string(&surrounding_lines))?;
-            writeln!(f, "  =============")?;
-            writeln!(f)?
-        }
-
-        match &self.details {
-            LexParseErrorDetails::Lex { details } => {
-                let x = indent_string(&Self::format_lex_error(details));
-                writeln!(f, "  Lexer error:\n{}", indent_string(&x))?
-            }
-            LexParseErrorDetails::Parse { tokens, details } => {
-                let x = indent_string(&Self::format_parse_error(details));
-                writeln!(f, "  ParserError:\n{}", indent_string(&x))?;
-            }
-            LexParseErrorDetails::Other(x) => writeln!(f, "  {x}")?,
-        };
-
-        Ok(())
+        self.write_error(f)
     }
 }

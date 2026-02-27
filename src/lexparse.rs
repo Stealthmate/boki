@@ -25,6 +25,8 @@ fn fold_tokens(
     match (last.token().name(), t.token().name()) {
         // we skip comments
         (_, tokens::TOKEN_NAME_COMMENT) => a,
+        // we skip whitespace
+        (_, tokens::TOKEN_NAME_WHITESPACE) => a,
         // consecutive newlines are combined into one
         (tokens::TOKEN_NAME_LINE_SEPARATOR, tokens::TOKEN_NAME_LINE_SEPARATOR) => a,
         // indent followed by newline is considered as a single newline

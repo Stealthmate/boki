@@ -18,6 +18,7 @@ pub enum Token {
     LineSeparator,
     Comment(String),
     YamlMatter(serde_yaml::Mapping),
+    Whitespace,
     Indent,
     Eof,
 }
@@ -31,6 +32,7 @@ pub const TOKEN_NAME_POSTING_SEPARATOR: &str = "posting separator";
 pub const TOKEN_NAME_LINE_SEPARATOR: &str = "line separator";
 pub const TOKEN_NAME_COMMENT: &str = "comment";
 pub const TOKEN_NAME_YAML_MATTER: &str = "YAML matter";
+pub const TOKEN_NAME_WHITESPACE: &str = "whitespace";
 pub const TOKEN_NAME_INDENT: &str = "indent";
 pub const TOKEN_NAME_EOF: &str = "eof";
 
@@ -50,6 +52,7 @@ impl Token {
             Token::LineSeparator => TOKEN_NAME_LINE_SEPARATOR,
             Token::Comment(_) => TOKEN_NAME_COMMENT,
             Token::YamlMatter(_) => TOKEN_NAME_YAML_MATTER,
+            Token::Whitespace => TOKEN_NAME_WHITESPACE,
             Token::Indent => TOKEN_NAME_INDENT,
             Token::Eof => TOKEN_NAME_EOF,
         }

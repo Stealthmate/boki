@@ -59,6 +59,7 @@ fn lex_single_token(input: StringScanner) -> NomResult<Token> {
 
     let mut results = vec![];
     for mut lexer in [
+        basic::lex_whitespace,
         basic::lex_comment,
         basic::lex_keyword,
         identifier::lex,
@@ -109,10 +110,6 @@ fn nom_lex_string(input: StringScanner) -> NomResult<Vec<DecoratedToken>> {
         })?;
         remaining = rest;
 
-        if let Token::LineSeparator = &t {
-            let (rest, _) = opt(whitespace::linespace).parse(remaining)?;
-            remaining = rest;
-        };
         tokens.push(DecoratedToken::new(t.clone(), loc));
         remaining.set_last_token(t);
     }
@@ -162,15 +159,18 @@ mod test {
 
     #[test]
     fn test_lexes_2_tokens_with_space_inbetween() {
-        let input = "\n    \nfoo  \n \n \t\t  \n\n\nbar\n\n";
+        let input = "\n    \nfoo  \n\nbar\n\n";
         let tokens = lex_string(input).expect("Failed.");
         let the_tokens: Vec<Token> = tokens.iter().map(|x| x.token().clone()).collect();
         assert_eq!(
             the_tokens,
             vec![
                 Token::Identifier("foo".to_string()),
+                Token::Whitespace,
+                Token::LineSeparator,
                 Token::LineSeparator,
                 Token::Identifier("bar".to_string()),
+                Token::LineSeparator,
                 Token::LineSeparator,
                 Token::Eof
             ]

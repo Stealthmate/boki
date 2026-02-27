@@ -78,7 +78,10 @@ struct StringScannerIteratorBase {
 impl From<&StringScanner> for StringScannerIteratorBase {
     fn from(value: &StringScanner) -> Self {
         Self {
-            chars: value.content.chars().enumerate().collect(),
+            chars: value.content[value.offset..value.limit]
+                .chars()
+                .enumerate()
+                .collect(),
             index: 0,
         }
     }
@@ -165,7 +168,7 @@ impl nom::Input for StringScanner {
     fn take_split(&self, index: usize) -> (Self, Self) {
         let adj_index = self.offset + index;
 
-        if index > self.limit - self.offset {
+        if adj_index > self.limit {
             panic!("Tried to take outside bounds.");
         }
 

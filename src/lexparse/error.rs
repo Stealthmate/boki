@@ -169,6 +169,23 @@ impl LexParseError {
         Ok(())
     }
 
+    fn write_lex_error(
+        &self,
+        f: &mut std::fmt::Formatter,
+        details: &lex::LexerErrorDetails,
+    ) -> std::fmt::Result {
+        match &details {
+            lex::LexerErrorDetails::InternalError(_) => {
+                writeln!(f, "Internal error.")?;
+            }
+            lex::LexerErrorDetails::NothingMatched => {
+                write!(f, "Encountered invalid characters. Previous tokens: ")?;
+            }
+        };
+
+        Ok(())
+    }
+
     fn write_parse_error(
         &self,
         f: &mut std::fmt::Formatter,
@@ -211,7 +228,7 @@ impl LexParseError {
 
         match &self.details {
             LexParseErrorDetails::Lex { details } => {
-                self.append_error(f, details.location, "Lex error.")?;
+                self.write_lex_error(f, &details.details)?;
             }
             LexParseErrorDetails::Parse { tokens, details } => {
                 self.write_parse_error(f, tokens, details)?;
@@ -219,25 +236,6 @@ impl LexParseError {
             LexParseErrorDetails::Other(x) => writeln!(f, "  TODO: {x}")?,
         };
         Ok(())
-    }
-
-    fn format_lex_error(error: &lex::LexerError) -> String {
-        let mut s = String::new();
-        match &error.details {
-            lex::LexerErrorDetails::InternalError(_) => {
-                s += "Internal error.";
-            }
-            lex::LexerErrorDetails::NothingMatched => {
-                s += "Encountered invalid characters. Previous tokens: ";
-                s += &error
-                    .previous_tokens
-                    .iter()
-                    .map(|t| format!("({}, {})", t.location(), t.token().name()))
-                    .collect::<Vec<String>>()
-                    .join(", ");
-            }
-        }
-        s
     }
 }
 

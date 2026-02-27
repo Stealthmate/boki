@@ -59,6 +59,7 @@ fn lex_single_token(input: StringScanner) -> NomResult<Token> {
 
     let mut results = vec![];
     for mut lexer in [
+        basic::lex_comment,
         basic::lex_keyword,
         identifier::lex,
         timestamp::lex,

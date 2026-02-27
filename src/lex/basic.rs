@@ -39,15 +39,15 @@ pub fn lex_posting_separator(input: StringScanner) -> NomResult<Token> {
     Ok((input, Token::PostingSeparator))
 }
 
-fn lex_comment(input: StringScanner) -> NomResult<()> {
+pub fn lex_comment(input: StringScanner) -> NomResult<Token> {
+    let (input, _) = opt(whitespace::whitespace).parse(input)?;
     let (input, _) = tag("//").parse(input)?;
-    let (input, _) = take_until("\n").parse(input)?;
-    Ok((input, ()))
+    let (input, content) = take_until("\n").parse(input)?;
+    Ok((input, Token::Comment(content.as_str().to_string())))
 }
 
 pub fn lex_line_separator(input: StringScanner) -> NomResult<Token> {
     let (input, _) = opt(whitespace::whitespace).parse(input)?;
-    let (input, _) = opt(lex_comment).parse(input)?;
     let (input, _) = tag("\n").parse(input)?;
     Ok((input, Token::LineSeparator))
 }
@@ -84,10 +84,10 @@ mod test {
     use super::*;
 
     #[test]
-    fn test_line_with_comment() {
-        let input = "   // foobar\n";
-        let (rest, t) = lex_line_separator(input.into()).expect("Failed.");
-        assert!(matches!(t, Token::LineSeparator));
-        assert!(rest.is_empty());
+    fn test_comment() {
+        let input = "// foobar\n";
+        let (rest, t) = lex_comment(input.into()).expect("Failed.");
+        assert!(matches!(t, Token::Comment(_)));
+        assert_eq!(rest.as_str(), "\n");
     }
 }

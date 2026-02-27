@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::{io::Write, path::PathBuf};
 
 use clap::{Parser, Subcommand};
 
@@ -17,22 +17,31 @@ impl From<Box<boki::evaluate::EvaluateError>> for CLIError {
     }
 }
 
+impl From<boki::format::FormatError> for CLIError {
+    fn from(value: boki::format::FormatError) -> Self {
+        Self(format!("{:#?}", value))
+    }
+}
+
 type CLIResult<T> = Result<T, CLIError>;
 
 #[derive(Subcommand)]
 enum Commands {
     /// does testing things
     Export {
+        #[arg(short, long, value_name = "FILE")]
+        file: PathBuf,
         #[arg(short, long)]
         output: Option<PathBuf>,
+    },
+    Format {
+        files: Vec<PathBuf>,
     },
 }
 
 #[derive(Parser)]
 #[command(version, about, long_about = None)]
 struct Cli {
-    #[arg(short, long, value_name = "FILE")]
-    file: PathBuf,
     #[command(subcommand)]
     command: Commands,
 }
@@ -40,10 +49,9 @@ struct Cli {
 fn _main() -> CLIResult<()> {
     let cli = Cli::parse();
 
-    let journal = boki::evaluate::evaluate_file(cli.file.to_str().unwrap())?;
-
     match &cli.command {
-        Commands::Export { output } => {
+        Commands::Export { file, output } => {
+            let journal = boki::evaluate::evaluate_file(file.to_str().unwrap())?;
             let output_str =
                 serde_json::to_string(&journal).map_err(|e| CLIError(e.to_string()))?;
             match output {
@@ -51,7 +59,21 @@ fn _main() -> CLIResult<()> {
                 Some(x) => std::fs::write(x, output_str).expect("Failed to write output file."),
             };
         }
-    }
+        Commands::Format { files } => {
+            for file in files {
+                let input =
+                    std::fs::read_to_string(file.clone()).map_err(|e| CLIError(e.to_string()))?;
+                let output = boki::format::format_string(&input)?;
+                let mut f = std::fs::File::options()
+                    .write(true)
+                    .truncate(true)
+                    .open(file)
+                    .map_err(|e| CLIError(e.to_string()))?;
+                f.write(output.as_bytes())
+                    .map_err(|e| CLIError(e.to_string()))?;
+            }
+        }
+    };
 
     Ok(())
 }

@@ -13,19 +13,14 @@
 
 use crate::ast;
 use crate::lexparse::tokens;
+use crate::parsing::{self, Parser, ParserResult, TokenScanner};
 
-mod basic;
-mod combinators;
-mod core;
 mod set_attributes;
 mod transaction;
 
-use core::{Parser, ParserResult};
-pub(super) use core::{ParserError, ParserErrorDetails, TokenScanner};
-
 fn parse_initial_whitespace_and_comments(scanner: &mut TokenScanner) -> ParserResult<()> {
     loop {
-        match core::peek_next(scanner)? {
+        match parsing::peek_next(scanner)? {
             tokens::Token::Comment(_) => {}
             tokens::Token::LineSeparator => {}
             _ => return Ok(()),
@@ -47,7 +42,7 @@ fn parse_set_attribute(scanner: &mut TokenScanner) -> ParserResult<ast::ASTNode>
 
 fn parse_a_node(scanner: &mut TokenScanner) -> ParserResult<ast::ASTNode> {
     let parsers = [parse_transaction, parse_set_attribute];
-    let node = combinators::one_of(&parsers).parse(scanner)?;
+    let node = parsing::one_of(&parsers).parse(scanner)?;
     Ok(node)
 }
 
@@ -59,7 +54,7 @@ fn parse_a_node(scanner: &mut TokenScanner) -> ParserResult<ast::ASTNode> {
 pub fn parse_node(scanner: &mut TokenScanner) -> ParserResult<Option<ast::ASTNode>> {
     parse_initial_whitespace_and_comments(scanner)?;
 
-    if let tokens::Token::Eof = core::peek_next(scanner)? {
+    if let tokens::Token::Eof = parsing::peek_next(scanner)? {
         return Ok(None);
     };
 
@@ -69,7 +64,7 @@ pub fn parse_node(scanner: &mut TokenScanner) -> ParserResult<Option<ast::ASTNod
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::lexparse::parse::core;
+    use crate::parsing;
     use crate::tokens::Token;
 
     #[test]
@@ -83,7 +78,10 @@ mod test {
     fn test_no_tokens() {
         let mut scanner = super::TokenScanner::from_slice(&[]);
         let err = parse_node(&mut scanner).expect_err("Should have failed.");
-        assert!(matches!(err.details, core::ParserErrorDetails::Incomplete));
+        assert!(matches!(
+            err.details,
+            parsing::ParserErrorDetails::Incomplete
+        ));
     }
 
     #[test]
@@ -94,7 +92,10 @@ mod test {
             tokens::Token::LineSeparator,
         ]);
         let err = parse_node(&mut scanner).expect_err("Should have failed.");
-        assert!(matches!(err.details, core::ParserErrorDetails::Incomplete));
+        assert!(matches!(
+            err.details,
+            parsing::ParserErrorDetails::Incomplete
+        ));
         assert_eq!(err.location, 3)
     }
 

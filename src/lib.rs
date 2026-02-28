@@ -15,5 +15,6 @@ pub mod format;
 pub mod lex;
 pub mod lexparse;
 pub mod output;
+pub mod parsing;
 pub mod tokens;
 pub mod utils;

@@ -3,6 +3,7 @@
 
 use crate::ast;
 use crate::lex;
+use crate::parsing;
 use crate::tokens;
 
 mod error;
@@ -58,7 +59,7 @@ fn lexparse(context: LexParseErrorContext) -> LexParseResult<Vec<ast::ASTNode>> 
     })?;
     let tokens = tokens.into_iter().fold(vec![], fold_tokens);
     let the_tokens: Vec<tokens::Token> = tokens.iter().map(|x| x.token().clone()).collect();
-    let mut scanner = parse::TokenScanner::from_slice(&the_tokens);
+    let mut scanner = parsing::TokenScanner::from_slice(&the_tokens);
     let mut nodes = vec![];
 
     loop {

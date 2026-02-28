@@ -58,11 +58,14 @@ impl TokenScanner {
         Ok(())
     }
     pub fn advance(&mut self, i: usize) -> ParserResult<()> {
-        self.seek(self.location + 1)
+        self.seek(self.location + i)
     }
     pub fn peek(&self) -> Option<&tokens::Token> {
         self.tokens.get(self.location)
     }
+
+    // TODO:
+    #[allow(clippy::should_implement_trait)]
     pub fn next(&mut self) -> Option<&tokens::Token> {
         let t = self.tokens.get(self.location);
         self.location += 1;

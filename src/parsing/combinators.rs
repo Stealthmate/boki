@@ -1,4 +1,4 @@
-use crate::lexparse::parse::core::{Parser, ParserError, ParserResult, TokenScanner};
+use crate::parsing::core::{Parser, ParserError, ParserResult, TokenScanner};
 struct ManyParser<P> {
     parser: P,
 }
@@ -163,17 +163,17 @@ where
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::lexparse::parse::core::{ParserError, ParserErrorDetails};
+    use crate::parsing::core::{ParserError, ParserErrorDetails};
     use crate::tokens;
 
-    fn parse_fail(scanner: &mut TokenScanner) -> ParserResult<()> {
+    fn parse_fail(_: &mut TokenScanner) -> ParserResult<()> {
         Err(ParserError {
             location: 0,
             details: ParserErrorDetails::Incomplete,
         })
     }
 
-    fn parse_succeed(scanner: &mut TokenScanner) -> ParserResult<()> {
+    fn parse_succeed(_: &mut TokenScanner) -> ParserResult<()> {
         Ok(())
     }
 
@@ -181,13 +181,13 @@ mod test {
     fn test_one_of_first() {
         let mut scanner = TokenScanner::from_slice(&[tokens::Token::Indent]);
         let parsers = [parse_succeed, parse_fail];
-        let result = one_of(&parsers).parse(&mut scanner).expect("Failed.");
+        one_of(&parsers).parse(&mut scanner).expect("Failed.");
     }
 
     #[test]
     fn test_one_of_second() {
         let mut scanner = TokenScanner::from_slice(&[tokens::Token::Indent]);
         let parsers = [parse_fail, parse_succeed];
-        let result = one_of(&parsers).parse(&mut scanner).expect("Failed.");
+        one_of(&parsers).parse(&mut scanner).expect("Failed.");
     }
 }

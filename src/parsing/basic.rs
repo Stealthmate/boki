@@ -1,8 +1,6 @@
 use crate::tokens;
 
-use crate::lexparse::parse::core::{
-    get_next, ParserError, ParserErrorDetails, ParserResult, TokenScanner,
-};
+use crate::parsing::core::{get_next, ParserError, ParserErrorDetails, ParserResult, TokenScanner};
 
 macro_rules! parse_token {
     ($name:ident, $return_type:ty, $tname:expr, $expansion:pat, $return_value:expr) => {

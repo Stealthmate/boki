@@ -1,24 +1,23 @@
 use crate::ast;
-use crate::lexparse::parse::{basic, combinators, core};
 
-use crate::lexparse::parse::core::{Parser, ParserError};
+use crate::parsing::{self, Parser, ParserError};
 
 pub struct TransactionParser;
 
 impl TransactionParser {
     fn parse_transaction_attributes(
-        scanner: &mut core::TokenScanner,
-    ) -> core::ParserResult<serde_yaml::Mapping> {
-        combinators::terminated(basic::parse_yaml_matter, basic::parse_line_separator)
+        scanner: &mut parsing::TokenScanner,
+    ) -> parsing::ParserResult<serde_yaml::Mapping> {
+        parsing::terminated(parsing::parse_yaml_matter, parsing::parse_line_separator)
             .parse(scanner)
     }
 
     fn parse_header(
-        scanner: &mut core::TokenScanner,
-    ) -> core::ParserResult<ast::TransactionHeader> {
-        let timestamp = basic::parse_timestamp(scanner)?;
-        basic::parse_line_separator(scanner)?;
-        let attributes = combinators::optional(Self::parse_transaction_attributes)
+        scanner: &mut parsing::TokenScanner,
+    ) -> parsing::ParserResult<ast::TransactionHeader> {
+        let timestamp = parsing::parse_timestamp(scanner)?;
+        parsing::parse_line_separator(scanner)?;
+        let attributes = parsing::optional(Self::parse_transaction_attributes)
             .parse(scanner)
             .map(|x| x.unwrap_or_default())?;
         Ok(ast::TransactionHeader {
@@ -27,31 +26,31 @@ impl TransactionParser {
         })
     }
 
-    fn parse_subaccount(scanner: &mut core::TokenScanner) -> core::ParserResult<String> {
-        combinators::preceded(basic::parse_account_separator, basic::parse_identifier)
+    fn parse_subaccount(scanner: &mut parsing::TokenScanner) -> parsing::ParserResult<String> {
+        parsing::preceded(parsing::parse_account_separator, parsing::parse_identifier)
             .parse(scanner)
     }
 
-    fn parse_account(scanner: &mut core::TokenScanner) -> core::ParserResult<String> {
-        let root = basic::parse_identifier(scanner)?;
-        let rest = combinators::many(Self::parse_subaccount).parse(scanner)?;
+    fn parse_account(scanner: &mut parsing::TokenScanner) -> parsing::ParserResult<String> {
+        let root = parsing::parse_identifier(scanner)?;
+        let rest = parsing::many(Self::parse_subaccount).parse(scanner)?;
 
         let acc = rest.into_iter().fold(root, |a, p| a + "/" + &p);
 
         Ok(acc)
     }
 
-    fn parse_commodity(scanner: &mut core::TokenScanner) -> core::ParserResult<String> {
-        basic::parse_identifier(scanner)
+    fn parse_commodity(scanner: &mut parsing::TokenScanner) -> parsing::ParserResult<String> {
+        parsing::parse_identifier(scanner)
     }
 
-    fn parse_posting(scanner: &mut core::TokenScanner) -> core::ParserResult<ast::Posting> {
+    fn parse_posting(scanner: &mut parsing::TokenScanner) -> parsing::ParserResult<ast::Posting> {
         let account = Self::parse_account(scanner)?;
-        basic::parse_posting_separator(scanner)?;
-        let commodity = combinators::optional(Self::parse_commodity).parse(scanner)?;
-        basic::parse_posting_separator(scanner)?;
-        let amount = combinators::optional(basic::parse_amount).parse(scanner)?;
-        basic::parse_line_separator(scanner)?;
+        parsing::parse_posting_separator(scanner)?;
+        let commodity = parsing::optional(Self::parse_commodity).parse(scanner)?;
+        parsing::parse_posting_separator(scanner)?;
+        let amount = parsing::optional(parsing::parse_amount).parse(scanner)?;
+        parsing::parse_line_separator(scanner)?;
 
         Ok(ast::Posting {
             account,
@@ -60,19 +59,19 @@ impl TransactionParser {
         })
     }
 
-    pub fn parse(scanner: &mut core::TokenScanner) -> core::ParserResult<ast::Transaction> {
+    pub fn parse(scanner: &mut parsing::TokenScanner) -> parsing::ParserResult<ast::Transaction> {
         let header = Self::parse_header(scanner)?;
 
         let mut postings = vec![];
         loop {
             let i = scanner.tell();
-            if basic::parse_indent(scanner).is_err() {
+            if parsing::parse_indent(scanner).is_err() {
                 scanner.seek(i)?;
                 break;
             }
             let p = Self::parse_posting(scanner).map_err(|e| ParserError {
                 location: i,
-                details: core::ParserErrorDetails::Nested(
+                details: parsing::ParserErrorDetails::Nested(
                     "Encountered invalid posting".to_string(),
                     Box::new(e),
                 ),
@@ -87,7 +86,7 @@ impl TransactionParser {
 #[cfg(test)]
 mod test {
     use super::TransactionParser;
-    use crate::lexparse::parse::core::TokenScanner;
+    use crate::lexparse::parse::parsing::TokenScanner;
     use crate::tokens::{Timestamp, Token};
 
     fn sample_timestamp() -> Timestamp {
@@ -199,7 +198,7 @@ mod test {
 
     #[test]
     fn test_invalid_posting() {
-        use crate::lexparse::parse::core::ParserErrorDetails;
+        use crate::lexparse::parse::parsing::ParserErrorDetails;
 
         let ts = sample_timestamp();
         let mut scanner = TokenScanner::from_slice(&[

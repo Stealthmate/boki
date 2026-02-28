@@ -1,7 +1,5 @@
 use crate::lex;
-use crate::lexparse::parse::{ParserError, ParserErrorDetails};
-
-use crate::lexparse::parse;
+use crate::parsing::{ParserError, ParserErrorDetails};
 
 use crate::utils::indent_string;
 
@@ -27,7 +25,7 @@ pub(crate) enum LexParseErrorDetails {
     },
     Parse {
         tokens: Vec<lex::DecoratedToken>,
-        details: parse::ParserError,
+        details: ParserError,
     },
     Other(String),
 }

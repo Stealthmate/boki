@@ -1,7 +1,6 @@
-use crate::lexparse::parse::{basic, core};
 use crate::tokens::Keyword;
 
-use crate::lexparse::parse::core::TokenScanner;
+use crate::parsing::{self, TokenScanner};
 
 pub struct SetAttributeParser;
 
@@ -10,11 +9,11 @@ impl SetAttributeParser {
         SetAttributeParser
     }
 
-    pub fn parse(&self, scanner: &mut TokenScanner) -> core::ParserResult<(String, String)> {
-        basic::parse_keyword(scanner, Keyword::Set)?;
-        let name = basic::parse_identifier(scanner)?;
-        let value = basic::parse_identifier(scanner)?;
-        basic::parse_line_separator(scanner)?;
+    pub fn parse(&self, scanner: &mut TokenScanner) -> parsing::ParserResult<(String, String)> {
+        parsing::parse_keyword(scanner, Keyword::Set)?;
+        let name = parsing::parse_identifier(scanner)?;
+        let value = parsing::parse_identifier(scanner)?;
+        parsing::parse_line_separator(scanner)?;
 
         Ok((name, value))
     }

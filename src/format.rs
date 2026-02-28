@@ -1,5 +1,9 @@
 use crate::lex;
+use crate::tokens;
 use std::io;
+
+mod _ast;
+mod write;
 
 #[derive(Clone, Debug)]
 pub enum FormatError {
@@ -19,7 +23,15 @@ impl From<io::Error> for FormatError {
 }
 
 pub fn format_string(s: &str) -> Result<String, FormatError> {
-    Ok(s.to_string())
+    let decoated_tokens = lex::lex_string(s)?;
+    let tokens: Vec<tokens::Token> = decoated_tokens
+        .iter()
+        .map(|dt| dt.token().clone())
+        .collect();
+    let nodes = vec![_ast::Node::Misc(tokens)];
+
+    let output = format!("{}", write::to_displayable(nodes.as_slice()));
+    Ok(output)
 }
 
 #[cfg(test)]

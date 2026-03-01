@@ -68,13 +68,6 @@ impl std::fmt::Display for ToText<&tokens::Token> {
     }
 }
 
-impl std::fmt::Display for ToText<&_ast::Transaction> {
-    #[allow(unused_variables)]
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        todo!()
-    }
-}
-
 fn fold_tokens(tokens: &[tokens::Token]) -> Vec<tokens::Token> {
     tokens.iter().fold(vec![], |mut a, t| {
         match (a.last(), t) {
@@ -100,9 +93,6 @@ impl std::fmt::Display for ToText<&_ast::Node> {
         match self.0 {
             _ast::Node::Misc(tokens) => {
                 write!(f, "{}", ToText(fold_tokens(tokens).as_slice()))?;
-            }
-            _ast::Node::Transaction(t) => {
-                write!(f, "{}", ToText(t))?;
             }
         };
 

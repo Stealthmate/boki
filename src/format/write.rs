@@ -68,11 +68,31 @@ impl std::fmt::Display for ToText<&tokens::Token> {
     }
 }
 
+fn fold_tokens(tokens: &[tokens::Token]) -> Vec<tokens::Token> {
+    tokens.iter().fold(vec![], |mut a, t| {
+        match (a.last(), t) {
+            // Trim consecutive whitespace
+            (Some(tokens::Token::Whitespace), tokens::Token::Whitespace) => a,
+            // If whitespace is followed by line separator, we ignore the whitespace
+            (Some(tokens::Token::Whitespace), tokens::Token::LineSeparator) => {
+                a.pop();
+                a.push(t.clone());
+                a
+            }
+            // Otherwise we do nothing
+            _ => {
+                a.push(t.clone());
+                a
+            }
+        }
+    })
+}
+
 impl std::fmt::Display for ToText<&_ast::Node> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self.0 {
             _ast::Node::Misc(tokens) => {
-                write!(f, "{}", ToText(tokens.as_slice()))?;
+                write!(f, "{}", ToText(fold_tokens(tokens).as_slice()))?;
             }
         };
 

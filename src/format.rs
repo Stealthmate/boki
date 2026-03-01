@@ -1,8 +1,10 @@
-use crate::lex;
+use crate::parsing::TokenScanner;
 use crate::tokens;
+use crate::{lex, parsing};
 use std::io;
 
 mod _ast;
+mod parse;
 mod write;
 
 #[derive(Clone, Debug)]
@@ -22,13 +24,19 @@ impl From<io::Error> for FormatError {
     }
 }
 
+impl From<parsing::ParserError> for FormatError {
+    fn from(value: parsing::ParserError) -> Self {
+        Self::General(format!("{:#?}", value))
+    }
+}
+
 pub fn format_string(s: &str) -> Result<String, FormatError> {
     let decoated_tokens = lex::lex_string(s)?;
     let tokens: Vec<tokens::Token> = decoated_tokens
         .iter()
         .map(|dt| dt.token().clone())
         .collect();
-    let nodes = vec![_ast::Node::Misc(tokens)];
+    let nodes = parse::parse(&mut TokenScanner::from_slice(tokens.as_slice()))?;
 
     let output = format!("{}", write::to_displayable(nodes.as_slice()));
     Ok(output)

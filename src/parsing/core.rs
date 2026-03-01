@@ -71,6 +71,10 @@ impl TokenScanner {
         self.location += 1;
         t
     }
+
+    pub fn tokens(&self) -> &[tokens::Token] {
+        &self.tokens[self.offset..]
+    }
 }
 
 pub fn peek_next(scanner: &TokenScanner) -> ParserResult<&tokens::Token> {

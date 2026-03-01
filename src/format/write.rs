@@ -2,29 +2,45 @@
 use crate::format::_ast;
 use crate::tokens;
 
-/// Type wrapper with a [std::fmt::Display] derivation. We implement the derivation on the wrapper,
-/// so that we don't force any specific logic on the AST (e.g. if we want to have multiple different Display derivations in the future).
-pub(super) struct ToText<T>(T);
+#[derive(Clone, Debug)]
+pub struct FormatContext {
+    account_column_width: usize,
+    commodity_column_width: usize,
+    amount_column_width: usize,
+}
 
-impl<'a> From<&'a tokens::Token> for ToText<&'a tokens::Token> {
-    fn from(value: &'a tokens::Token) -> Self {
-        Self(value)
+#[allow(clippy::derivable_impls)]
+impl Default for FormatContext {
+    fn default() -> Self {
+        Self {
+            account_column_width: 0,
+            commodity_column_width: 0,
+            amount_column_width: 0,
+        }
     }
 }
 
-impl<'a> From<&'a _ast::Node> for ToText<&'a _ast::Node> {
-    fn from(value: &'a _ast::Node) -> Self {
-        Self(value)
+/// Type wrapper with a [std::fmt::Display] derivation. We implement the derivation on the wrapper,
+/// so that we don't force any specific logic on the AST (e.g. if we want to have multiple different Display derivations in the future).
+pub(super) struct ToText<T>(FormatContext, T);
+
+impl<T> ToText<T> {
+    pub fn new(context: FormatContext, v: T) -> Self {
+        Self(context, v)
+    }
+
+    fn with_context<T1>(&self, v: T1) -> ToText<T1> {
+        ToText(self.0.clone(), v)
     }
 }
 
 impl<'a, T> std::fmt::Display for ToText<&'a [T]>
 where
-    ToText<&'a T>: From<&'a T> + std::fmt::Display,
+    ToText<&'a T>: std::fmt::Display,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        for item in self.0 {
-            write!(f, "{}", ToText::from(item))?;
+        for item in self.1 {
+            write!(f, "{}", self.with_context(item))?;
         }
 
         Ok(())
@@ -33,7 +49,7 @@ where
 
 impl std::fmt::Display for ToText<&tokens::Token> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self.0 {
+        match self.1 {
             tokens::Token::Keyword(kw) => write!(
                 f,
                 "{}",
@@ -88,11 +104,50 @@ fn fold_tokens(tokens: &[tokens::Token]) -> Vec<tokens::Token> {
     })
 }
 
+impl std::fmt::Display for ToText<&_ast::Posting> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.with_context(&tokens::Token::Indent))?;
+        write!(
+            f,
+            "{: <width$};",
+            format!("{}", self.with_context(self.1.account.as_slice())),
+            width = self.0.account_column_width
+        )?;
+        write!(
+            f,
+            "{: <width$};",
+            format!("{}", self.1.commodity.clone().unwrap_or("".to_string())),
+            width = self.0.commodity_column_width
+        )?;
+        write!(
+            f,
+            "{: >width$}",
+            format!(
+                "{}",
+                self.1
+                    .amount
+                    .map(|x| x.to_string())
+                    .unwrap_or("".to_string())
+            ),
+            width = self.0.amount_column_width + 1
+        )?;
+        if let Some(comment) = &self.1.comment {
+            write!(f, " //{}", comment)?;
+        }
+        writeln!(f)?;
+
+        Ok(())
+    }
+}
+
 impl std::fmt::Display for ToText<&_ast::Node> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self.0 {
+        match self.1 {
             _ast::Node::Misc(tokens) => {
-                write!(f, "{}", ToText(fold_tokens(tokens).as_slice()))?;
+                write!(f, "{}", self.with_context(fold_tokens(tokens).as_slice()))?;
+            }
+            _ast::Node::Posting(posting) => {
+                write!(f, "{}", self.with_context(posting.as_ref()))?;
             }
         };
 
@@ -100,8 +155,41 @@ impl std::fmt::Display for ToText<&_ast::Node> {
     }
 }
 
+fn compute_format(nodes: &[_ast::Node]) -> FormatContext {
+    let mut ctx = FormatContext::default();
+
+    for node in nodes {
+        #[allow(clippy::single_match)]
+        match node {
+            _ast::Node::Posting(posting) => {
+                let acct_string =
+                    format!("{}", ToText::new(ctx.clone(), posting.account.as_slice()));
+                ctx.account_column_width =
+                    std::cmp::max(ctx.account_column_width, acct_string.len());
+
+                ctx.commodity_column_width = std::cmp::max(
+                    ctx.commodity_column_width,
+                    posting.commodity.clone().unwrap_or("".to_string()).len(),
+                );
+                ctx.amount_column_width = std::cmp::max(
+                    ctx.amount_column_width,
+                    posting
+                        .amount
+                        .map(|x| x.to_string())
+                        .unwrap_or("".to_string())
+                        .len(),
+                );
+            }
+            _ => {}
+        }
+    }
+
+    ctx
+}
+
 pub(super) fn to_displayable(nodes: &[_ast::Node]) -> impl std::fmt::Display + '_ {
-    ToText(nodes)
+    let ctx = compute_format(nodes);
+    ToText::new(ctx, nodes)
 }
 
 #[cfg(test)]

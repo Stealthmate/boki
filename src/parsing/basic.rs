@@ -79,6 +79,20 @@ parse_token!(
     tokens::Token::Indent,
     ()
 );
+parse_token!(
+    parse_whitespace,
+    (),
+    tokens::TOKEN_NAME_WHITESPACE,
+    tokens::Token::Whitespace,
+    ()
+);
+parse_token!(
+    parse_comment,
+    String,
+    tokens::TOKEN_NAME_COMMENT,
+    tokens::Token::Comment(x),
+    x.to_string()
+);
 
 pub fn parse_keyword(scanner: &mut TokenScanner, kw: tokens::Keyword) -> ParserResult<()> {
     let i = scanner.tell();

@@ -1,4 +1,6 @@
-use crate::parsing::core::{Parser, ParserError, ParserResult, TokenScanner};
+use crate::parsing::core::{get_next, Parser, ParserError, ParserResult, TokenScanner};
+use crate::tokens;
+
 struct ManyParser<P> {
     parser: P,
 }
@@ -158,6 +160,48 @@ where
     P: Parser<Output = T>,
 {
     OneOfParser { parsers }
+}
+
+struct TakeUntilParser<P> {
+    parser: P,
+    inclusive: bool,
+}
+
+impl<P> Parser for TakeUntilParser<P>
+where
+    P: Parser,
+{
+    type Output = Vec<tokens::Token>;
+
+    fn parse(&self, scanner: &mut TokenScanner) -> ParserResult<Self::Output> {
+        let mut tokens = vec![];
+        loop {
+            let i = scanner.tell();
+            let result = self.parser.parse(scanner);
+            scanner.seek(i)?;
+            match result {
+                Ok(_) => {
+                    if self.inclusive {
+                        scanner.advance(1)?;
+                    }
+                    break;
+                }
+                Err(_) => {
+                    let t = get_next(scanner)?;
+                    tokens.push(t.clone());
+                }
+            }
+        }
+
+        Ok(tokens)
+    }
+}
+
+pub fn take_until<P>(parser: P, inclusive: bool) -> impl Parser<Output = Vec<tokens::Token>>
+where
+    P: Parser,
+{
+    TakeUntilParser { parser, inclusive }
 }
 
 #[cfg(test)]

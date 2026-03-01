@@ -30,8 +30,33 @@ fn parse_misc(scanner: &mut parsing::TokenScanner) -> parsing::ParserResult<_ast
     parse_line(scanner).map(_ast::Node::Misc)
 }
 
+fn parse_posting(scanner: &mut parsing::TokenScanner) -> parsing::ParserResult<_ast::Node> {
+    parsing::parse_indent(scanner)?;
+    let account = parsing::take_until(parsing::parse_posting_separator, true).parse(scanner)?;
+
+    parsing::optional(parsing::parse_whitespace).parse(scanner)?;
+    let commodity = parsing::optional(parsing::parse_identifier).parse(scanner)?;
+    parsing::optional(parsing::parse_whitespace).parse(scanner)?;
+    parsing::parse_posting_separator(scanner)?;
+
+    parsing::optional(parsing::parse_whitespace).parse(scanner)?;
+    let amount = parsing::optional(parsing::parse_amount).parse(scanner)?;
+
+    parsing::optional(parsing::parse_whitespace).parse(scanner)?;
+    let comment = parsing::optional(parsing::parse_comment).parse(scanner)?;
+
+    parsing::parse_line_separator(scanner)?;
+
+    Ok(_ast::Node::Posting(Box::new(_ast::Posting {
+        account,
+        commodity,
+        amount,
+        comment,
+    })))
+}
+
 fn parse_node(scanner: &mut parsing::TokenScanner) -> parsing::ParserResult<_ast::Node> {
-    let parsers = [parse_misc];
+    let parsers = [parse_posting, parse_misc];
     let node = parsing::one_of(&parsers).parse(scanner)?;
     Ok(node)
 }

@@ -26,13 +26,53 @@ fn parse_line(scanner: &mut parsing::TokenScanner) -> parsing::ParserResult<Vec<
     Ok(tokens)
 }
 
+fn parse_yaml(scanner: &mut parsing::TokenScanner) -> parsing::ParserResult<_ast::Node> {
+    let start_of_line = scanner.tell();
+    parsing::parse_indent(scanner)?;
+    if !matches!(
+        parsing::peek_next(scanner),
+        Ok(tokens::Token::YamlMatter(_))
+    ) {
+        return Err(parsing::ParserError {
+            location: scanner.tell(),
+            details: parsing::ParserErrorDetails::Other("Expected YAML matter.".to_string()),
+        });
+    }
+    scanner.seek(start_of_line)?;
+    parse_line(scanner).map(_ast::Node::Misc)
+}
+
 fn parse_misc(scanner: &mut parsing::TokenScanner) -> parsing::ParserResult<_ast::Node> {
     parse_line(scanner).map(_ast::Node::Misc)
 }
 
+fn parse_account(scanner: &mut parsing::TokenScanner) -> parsing::ParserResult<Vec<tokens::Token>> {
+    let mut parts = vec![];
+    loop {
+        let t = parsing::get_next(scanner)?;
+        match &t {
+            tokens::Token::Identifier(_) => parts.push(t.clone()),
+            tokens::Token::AccountSeparator => parts.push(t.clone()),
+            tokens::Token::Whitespace => parts.push(t.clone()),
+            tokens::Token::PostingSeparator => {
+                break;
+            }
+            _ => {
+                return Err(parsing::ParserError {
+                    location: scanner.tell(),
+                    details: parsing::ParserErrorDetails::Other("Not an account.".to_string()),
+                });
+            }
+        };
+    }
+
+    Ok(parts)
+}
+
 fn parse_posting(scanner: &mut parsing::TokenScanner) -> parsing::ParserResult<_ast::Node> {
     parsing::parse_indent(scanner)?;
-    let account = parsing::take_until(parsing::parse_posting_separator, true).parse(scanner)?;
+
+    let account = parse_account(scanner)?;
 
     parsing::optional(parsing::parse_whitespace).parse(scanner)?;
     let commodity = parsing::optional(parsing::parse_identifier).parse(scanner)?;
@@ -56,7 +96,7 @@ fn parse_posting(scanner: &mut parsing::TokenScanner) -> parsing::ParserResult<_
 }
 
 fn parse_node(scanner: &mut parsing::TokenScanner) -> parsing::ParserResult<_ast::Node> {
-    let parsers = [parse_posting, parse_misc];
+    let parsers = [parse_yaml, parse_posting, parse_misc];
     let node = parsing::one_of(&parsers).parse(scanner)?;
     Ok(node)
 }

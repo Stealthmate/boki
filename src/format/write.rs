@@ -66,10 +66,11 @@ impl std::fmt::Display for ToText<&tokens::Token> {
             }
             tokens::Token::Amount(amt) => write!(f, "{}", amt),
             tokens::Token::YamlMatter(mapping) => {
-                write!(f, "  ")?;
+                writeln!(f, "  ---")?;
                 let mut s = serde_yaml::to_string(mapping).unwrap();
                 s = s.replace("\n", "\n  ");
-                write!(f, "{}", s)?;
+                write!(f, "  {}", s)?;
+                write!(f, "---")?;
                 Ok(())
             }
             tokens::Token::LineSeparator => writeln!(f),
@@ -109,16 +110,18 @@ impl std::fmt::Display for ToText<&_ast::Posting> {
         write!(f, "{}", self.with_context(&tokens::Token::Indent))?;
         write!(
             f,
-            "{: <width$};",
+            "{: <width$}",
             format!("{}", self.with_context(self.1.account.as_slice())),
             width = self.0.account_column_width
         )?;
+        write!(f, "{}", self.with_context(&tokens::Token::PostingSeparator))?;
         write!(
             f,
-            "{: <width$};",
+            "{: <width$}",
             format!("{}", self.1.commodity.clone().unwrap_or("".to_string())),
             width = self.0.commodity_column_width
         )?;
+        write!(f, "{}", self.with_context(&tokens::Token::PostingSeparator))?;
         write!(
             f,
             "{: >width$}",
@@ -134,7 +137,7 @@ impl std::fmt::Display for ToText<&_ast::Posting> {
         if let Some(comment) = &self.1.comment {
             write!(f, " //{}", comment)?;
         }
-        writeln!(f)?;
+        write!(f, "{}", self.with_context(&tokens::Token::LineSeparator))?;
 
         Ok(())
     }
@@ -164,6 +167,7 @@ fn compute_format(nodes: &[_ast::Node]) -> FormatContext {
             _ast::Node::Posting(posting) => {
                 let acct_string =
                     format!("{}", ToText::new(ctx.clone(), posting.account.as_slice()));
+                println!("Acctstring: {acct_string}.");
                 ctx.account_column_width =
                     std::cmp::max(ctx.account_column_width, acct_string.len());
 

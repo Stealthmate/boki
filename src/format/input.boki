@@ -1,3 +1,10 @@
 2026-01-06    // Hello comment!
+  // You can include arbitrary YAML segments in transactions!
+  ---
+  foo: something
+  bar:
+    - something
+    - else
+  ---
   assets;;          // foobar
-  expense;;900   
+  expense;JPY;900   

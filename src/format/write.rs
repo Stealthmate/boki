@@ -122,21 +122,25 @@ impl std::fmt::Display for ToText<&_ast::Posting> {
             width = self.0.commodity_column_width
         )?;
         write!(f, "{}", self.with_context(&tokens::Token::PostingSeparator))?;
-        write!(
-            f,
-            "{: >width$}",
-            format!(
-                "{}",
-                self.1
-                    .amount
-                    .map(|x| x.to_string())
-                    .unwrap_or("".to_string())
-            ),
-            width = self.0.amount_column_width + 1
-        )?;
-        if let Some(comment) = &self.1.comment {
-            write!(f, " //{}", comment)?;
+
+        if self.1.amount.is_some() || self.1.comment.is_some() {
+            write!(
+                f,
+                "{: >width$}",
+                format!(
+                    "{}",
+                    self.1
+                        .amount
+                        .map(|x| x.to_string())
+                        .unwrap_or("".to_string())
+                ),
+                width = self.0.amount_column_width + 1
+            )?;
+            if let Some(comment) = &self.1.comment {
+                write!(f, " //{}", comment)?;
+            }
         }
+
         write!(f, "{}", self.with_context(&tokens::Token::LineSeparator))?;
 
         Ok(())
@@ -167,7 +171,6 @@ fn compute_format(nodes: &[_ast::Node]) -> FormatContext {
             _ast::Node::Posting(posting) => {
                 let acct_string =
                     format!("{}", ToText::new(ctx.clone(), posting.account.as_slice()));
-                println!("Acctstring: {acct_string}.");
                 ctx.account_column_width =
                     std::cmp::max(ctx.account_column_width, acct_string.len());
 

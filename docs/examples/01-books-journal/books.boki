@@ -8,16 +8,16 @@ set default_commodity USD // Any time we do not specify a commodity, boki will a
   topics:
   - Software
   ---
-  assets/cash ; USD ; 80 // Here we explicitly specify the commodity
-  expense     ;     ;    // Here boki automatically balances the transaction, assuming the default commodity we specified earlier
+  assets/cash  ; USD ; 80 // Here we explicitly specify the commodity
+  expense      ;     ;    // Here boki automatically balances the transaction, assuming the default commodity we specified earlier
 
 2026-01-02
   ---
   book: Harry Potter and the Philosopher's Stone
   new: false
   ---
-  assets/cash ;     ; 16
-  expense     ;     ;   
+  assets/cash  ;     ; 16
+  expense      ;     ;
 
 2026-01-03
   ---
@@ -26,8 +26,8 @@ set default_commodity USD // Any time we do not specify a commodity, boki will a
   topics:
   - Software
   ---
-  assets/cash ;     ; 20
-  expense     ;     ;   
+  assets/cash  ;     ; 20
+  expense      ;     ;
 
 2026-01-04
   ---
@@ -37,5 +37,5 @@ set default_commodity USD // Any time we do not specify a commodity, boki will a
   - Software
   - DevOps
   ---
-  assets/cash ;     ; 30
-  expense     ;     ;   
+  assets/cash  ;     ; 30
+  expense      ;     ;

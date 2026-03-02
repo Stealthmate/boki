@@ -6,5 +6,5 @@
   - something
   - else
   ---
-  assets ;   ;     // foobar
-  expense;JPY; 900
+  assets  ;     ;     // foobar
+  expense ; JPY ; 900

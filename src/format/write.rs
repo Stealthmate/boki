@@ -110,14 +110,14 @@ impl std::fmt::Display for ToText<&_ast::Posting> {
         write!(f, "{}", self.with_context(&tokens::Token::Indent))?;
         write!(
             f,
-            "{: <width$}",
+            "{: <width$} ",
             format!("{}", self.with_context(self.1.account.as_slice())),
             width = self.0.account_column_width
         )?;
         write!(f, "{}", self.with_context(&tokens::Token::PostingSeparator))?;
         write!(
             f,
-            "{: <width$}",
+            " {: <width$} ",
             format!("{}", self.1.commodity.clone().unwrap_or("".to_string())),
             width = self.0.commodity_column_width
         )?;

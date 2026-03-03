@@ -1,4 +1,5 @@
-use super::core::{error_at, LexerErrorDetails, StringScanner};
+use super::core::{error_at, StringScanner};
+use super::error::LexerErrorDetails;
 use crate::tokens::{Keyword, Token};
 use nom::branch::alt;
 use nom::bytes::complete::{tag, take_until};
@@ -9,8 +10,9 @@ use nom::Parser;
 
 use super::core::NomResult;
 
-fn internal_error<T>(loc: usize, msg: &str) -> NomResult<T> {
+fn internal_error<T>(input: &StringScanner, loc: usize, msg: &str) -> NomResult<T> {
     Err(error_at(
+        input,
         loc,
         LexerErrorDetails::InternalError(msg.to_string()),
     ))
@@ -20,10 +22,12 @@ pub fn lex_whitespace(input: StringScanner) -> NomResult<Token> {
     let t = input.get_last_token();
     match &t {
         None => internal_error(
+            &input,
             input.location(),
             "Whitespace only comes after a non-line separator token.",
         ),
         Some(Token::LineSeparator) => internal_error(
+            &input,
             input.location(),
             "Whitespace only comes after a non-line separator token.",
         ),
@@ -41,6 +45,7 @@ pub fn lex_indent(input: StringScanner) -> NomResult<Token> {
         Some(Token::LineSeparator) => {}
         Some(_) => {
             return Err(error_at(
+                &input,
                 input.location(),
                 LexerErrorDetails::InternalError(
                     "Indent must be preceded by line separator.".to_string(),

@@ -19,7 +19,7 @@ impl From<Box<boki::evaluate::EvaluateError>> for CLIError {
 
 impl From<boki::format::FormatError> for CLIError {
     fn from(value: boki::format::FormatError) -> Self {
-        Self(format!("{:#?}", value))
+        Self(format!("{}", value))
     }
 }
 

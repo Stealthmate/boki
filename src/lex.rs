@@ -12,13 +12,14 @@ use crate::tokens::Token;
 mod amount;
 mod basic;
 mod core;
+mod error;
 mod identifier;
 mod timestamp;
 mod whitespace;
 
 use core::{LexerResult, NomResult, StringScanner};
 
-pub use core::{LexerError, LexerErrorDetails};
+pub use error::{LexerError, LexerErrorDetails};
 
 pub type TokenLocation = usize;
 
@@ -79,16 +80,29 @@ fn lex_single_token(input: StringScanner) -> NomResult<Token> {
 
     let Some(result) = results.first().cloned() else {
         return Err(core::error_at(
+            &input,
             input.location(),
-            core::LexerErrorDetails::NothingMatched,
+            LexerErrorDetails::NothingMatched,
         ));
     };
 
     Ok(result)
 }
 
-fn nom_lex_string(input: StringScanner) -> NomResult<Vec<DecoratedToken>> {
-    let (input, _) = opt(whitespace::linespace).parse(input)?;
+fn nom_lex_string(input: StringScanner) -> LexerResult<Vec<DecoratedToken>> {
+    let content = input.content.clone();
+    let (input, _) = opt(whitespace::linespace)
+        .parse(input)
+        .map_err(|e| match e {
+            nom::Err::Incomplete(_) => LexerError {
+                content: content.clone(),
+                location: 0,
+                details: LexerErrorDetails::InternalError("incomplete".to_string()),
+                previous_tokens: vec![],
+            },
+            nom::Err::Error(e1) => e1,
+            nom::Err::Failure(e1) => e1,
+        })?;
 
     let mut remaining = input;
 
@@ -99,14 +113,25 @@ fn nom_lex_string(input: StringScanner) -> NomResult<Vec<DecoratedToken>> {
         }
 
         let loc = remaining.location();
-        let (rest, t) = lex_single_token(remaining).map_err(|e| {
-            e.map(|mut e1| {
-                let end = tokens.len();
-                let start = end.saturating_sub(3);
-                e1.location = loc;
-                e1.previous_tokens = tokens[start..end].to_vec();
-                e1
-            })
+        let (rest, t) = lex_single_token(remaining).map_err(|e| match e {
+            nom::Err::Incomplete(_) => LexerError {
+                content: content.clone(),
+                location: loc,
+                details: LexerErrorDetails::InternalError("incomplete".to_string()),
+                previous_tokens: tokens.clone(),
+            },
+            nom::Err::Error(e1) => LexerError {
+                content: content.clone(),
+                location: loc,
+                details: e1.details,
+                previous_tokens: tokens.clone(),
+            },
+            nom::Err::Failure(e1) => LexerError {
+                content: content.clone(),
+                location: loc,
+                details: e1.details,
+                previous_tokens: tokens.clone(),
+            },
         })?;
         remaining = rest;
 
@@ -116,12 +141,12 @@ fn nom_lex_string(input: StringScanner) -> NomResult<Vec<DecoratedToken>> {
 
     tokens.push(DecoratedToken::new(Token::Eof, remaining.eof_idx()));
 
-    Ok((remaining, tokens))
+    Ok(tokens)
 }
 
 pub fn lex_string(content: &str) -> LexerResult<Vec<DecoratedToken>> {
     let scanner = StringScanner::from(content);
-    let (_, result) = nom_lex_string(scanner)?;
+    let result = nom_lex_string(scanner)?;
     Ok(result)
 }
 

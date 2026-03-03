@@ -38,7 +38,13 @@ pub struct LexParseError {
 
 impl LexParseError {
     fn get_position_in_content(&self, location: usize) -> (usize, usize) {
-        println!("str location: {location}");
+        let location = self
+            .context
+            .content()
+            .char_indices()
+            .nth(location)
+            .map(|(i, c)| i)
+            .unwrap();
         let mut i = 0;
         let mut last_line = 0;
         for (j, line) in self.context.content().split("\n").enumerate() {
@@ -86,10 +92,13 @@ impl LexParseError {
 
     fn arrow_to(&self, line: &str, charloc: usize) -> Vec<String> {
         let mut lines = vec![];
-        println!("charloc {charloc}");
-        lines.push(format!("        {}Λ", " ".repeat(charloc)));
-        lines.push(format!("        {}│", " ".repeat(charloc)));
-        lines.push(format!("  here  {}┘", "─".repeat(charloc)));
+        let real_charloc = line
+            .char_indices()
+            .position(|(i, _)| i == charloc + 1)
+            .unwrap_or(line.len());
+        lines.push(format!("        {}Λ", " ".repeat(real_charloc)));
+        lines.push(format!("        {}│", " ".repeat(real_charloc)));
+        lines.push(format!("  here  {}┘", "─".repeat(real_charloc)));
 
         lines
     }
@@ -167,23 +176,6 @@ impl LexParseError {
         Ok(())
     }
 
-    fn write_lex_error(
-        &self,
-        f: &mut std::fmt::Formatter,
-        details: &lex::LexerErrorDetails,
-    ) -> std::fmt::Result {
-        match &details {
-            lex::LexerErrorDetails::InternalError(_) => {
-                writeln!(f, "Internal error.")?;
-            }
-            lex::LexerErrorDetails::NothingMatched => {
-                write!(f, "Encountered invalid characters. Previous tokens: ")?;
-            }
-        };
-
-        Ok(())
-    }
-
     fn write_parse_error(
         &self,
         f: &mut std::fmt::Formatter,
@@ -226,7 +218,7 @@ impl LexParseError {
 
         match &self.details {
             LexParseErrorDetails::Lex { details } => {
-                self.write_lex_error(f, &details.details)?;
+                write!(f, "{}", details)?;
             }
             LexParseErrorDetails::Parse { tokens, details } => {
                 self.write_parse_error(f, tokens, details)?;

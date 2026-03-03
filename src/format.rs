@@ -14,7 +14,7 @@ pub enum FormatError {
 
 impl From<lex::LexerError> for FormatError {
     fn from(value: lex::LexerError) -> Self {
-        Self::General(format!("{:#?}", value))
+        Self::General(format!("{}", value))
     }
 }
 
@@ -27,6 +27,18 @@ impl From<io::Error> for FormatError {
 impl From<parsing::ParserError> for FormatError {
     fn from(value: parsing::ParserError) -> Self {
         Self::General(format!("{:#?}", value))
+    }
+}
+
+impl std::fmt::Display for FormatError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match &self {
+            Self::General(x) => {
+                write!(f, "{x}")?;
+            }
+        };
+
+        Ok(())
     }
 }
 

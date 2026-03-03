@@ -1,8 +1,9 @@
+use super::error::{LexerError, LexerErrorDetails};
 use crate::tokens::Token;
 
 #[derive(Clone, Debug)]
 pub struct StringScanner {
-    content: std::sync::Arc<str>,
+    pub content: std::sync::Arc<str>,
     offset: usize,
     limit: usize,
     last_token: Option<Token>,
@@ -217,25 +218,10 @@ impl nom::Input for StringScanner {
     }
 }
 
-#[derive(Clone, Debug)]
-pub enum LexerErrorDetails {
-    NothingMatched,
-    InternalError(String),
-}
-
-/// The main error type for the parser stage.
-#[derive(Debug)]
-pub struct LexerError {
-    /// The location of the token at which the error occurred.
-    pub location: usize,
-    /// Details about the exact error.
-    pub details: LexerErrorDetails,
-    pub previous_tokens: Vec<super::DecoratedToken>,
-}
-
 impl nom::error::ParseError<StringScanner> for LexerError {
     fn from_error_kind(input: StringScanner, kind: nom::error::ErrorKind) -> Self {
         Self {
+            content: input.content.clone(),
             location: input.offset,
             details: LexerErrorDetails::InternalError(format!("{:#?}", kind)),
             previous_tokens: vec![],
@@ -244,32 +230,9 @@ impl nom::error::ParseError<StringScanner> for LexerError {
 
     fn append(input: StringScanner, kind: nom::error::ErrorKind, _: Self) -> Self {
         Self {
+            content: input.content.clone(),
             location: input.offset,
             details: LexerErrorDetails::InternalError(format!("{:#?}", kind)),
-            previous_tokens: vec![],
-        }
-    }
-}
-
-impl From<nom::Err<LexerError>> for LexerError {
-    fn from(value: nom::Err<LexerError>) -> Self {
-        match value {
-            nom::Err::Incomplete(_) => LexerError {
-                location: 0,
-                details: LexerErrorDetails::InternalError("Incomplete".to_string()),
-                previous_tokens: vec![],
-            },
-            nom::Err::Error(e) => e,
-            nom::Err::Failure(e) => e,
-        }
-    }
-}
-
-impl From<nom::error::Error<LexerError>> for LexerError {
-    fn from(_: nom::error::Error<LexerError>) -> Self {
-        LexerError {
-            location: 0,
-            details: LexerErrorDetails::InternalError("Incomplete".to_string()),
             previous_tokens: vec![],
         }
     }
@@ -279,8 +242,13 @@ pub type NomResult<T> = nom::IResult<StringScanner, T, LexerError>;
 
 pub type LexerResult<T> = Result<T, LexerError>;
 
-pub(crate) fn error_at(location: usize, details: LexerErrorDetails) -> nom::Err<LexerError> {
+pub(crate) fn error_at(
+    scanner: &StringScanner,
+    location: usize,
+    details: LexerErrorDetails,
+) -> nom::Err<LexerError> {
     nom::Err::Failure(LexerError {
+        content: scanner.content.clone(),
         location,
         details,
         previous_tokens: vec![],

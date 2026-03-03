@@ -117,7 +117,7 @@ mod test {
 
     #[test]
     fn test_comment() {
-        let input = "// foobar\n";
+        let input = "// mutlibyte 🎉 万歳\n";
         let (rest, t) = lex_comment(input.into()).expect("Failed.");
         assert!(matches!(t, Token::Comment(_)));
         assert_eq!(rest.as_str(), "\n");

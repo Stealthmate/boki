@@ -204,12 +204,16 @@ impl nom::Input for StringScanner {
     }
 
     fn slice_index(&self, count: usize) -> Result<usize, nom::Needed> {
-        let n = self.limit - self.offset;
-        if n >= count {
-            Ok(count)
-        } else {
-            Err(nom::Needed::new(count - n))
-        }
+        let total = self.as_str().char_indices().count();
+        let idx = match self.as_str().char_indices().nth(count) {
+            Some((x, _)) => x,
+            None if count == total => self.as_str().len(),
+            _ => {
+                return Err(nom::Needed::new(count - total));
+            }
+        };
+
+        Ok(idx)
     }
 }
 

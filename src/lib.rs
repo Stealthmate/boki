@@ -11,7 +11,6 @@
 pub mod ast;
 pub mod compile;
 pub mod evaluate;
-pub mod format;
 pub mod lex;
 pub mod lexparse;
 pub mod output;

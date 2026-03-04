@@ -1,4 +1,4 @@
-use crate::tokens;
+use boki::tokens;
 
 #[derive(Clone, Debug)]
 pub struct Posting {

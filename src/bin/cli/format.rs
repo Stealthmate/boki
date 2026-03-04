@@ -1,11 +1,53 @@
-use crate::parsing::TokenScanner;
-use crate::tokens;
-use crate::{lex, parsing};
-use std::io;
+use std::io::Write;
+use std::path::PathBuf;
 
 mod _ast;
 mod parse;
 mod write;
+
+pub struct Error(String);
+
+impl crate::error::CLIError for Error {
+    fn format(&self) -> String {
+        self.0.clone()
+    }
+}
+
+impl From<FormatError> for Error {
+    fn from(value: FormatError) -> Self {
+        Self(format!("{}", value))
+    }
+}
+
+impl From<std::io::Error> for Error {
+    fn from(value: std::io::Error) -> Self {
+        Self(format!("{}", value))
+    }
+}
+
+#[derive(clap::Args)]
+pub struct Args {
+    files: Vec<PathBuf>,
+}
+
+pub fn run(args: &Args) -> Result<(), Error> {
+    for file in &args.files {
+        let input = std::fs::read_to_string(file.clone())?;
+        let output = format_string(&input)?;
+        let mut f = std::fs::File::options()
+            .write(true)
+            .truncate(true)
+            .open(file)?;
+        f.write_all(output.as_bytes())?;
+    }
+
+    Ok(())
+}
+
+use boki::parsing::TokenScanner;
+use boki::tokens;
+use boki::{lex, parsing};
+use std::io;
 
 #[derive(Clone, Debug)]
 pub enum FormatError {
@@ -58,11 +100,11 @@ pub fn format_string(s: &str) -> Result<String, FormatError> {
 mod test {
     #[test]
     fn test_smoke() {
-        let input_str =
-            std::fs::read_to_string("src/format/input.boki").expect("Could not read input file.");
+        let input_str = std::fs::read_to_string("src/bin/cli/format/input.boki")
+            .expect("Could not read input file.");
         let formatted_str = super::format_string(&input_str).expect("Failed.");
-        let rhs =
-            std::fs::read_to_string("src/format/output.boki").expect("Could not read output file.");
+        let rhs = std::fs::read_to_string("src/bin/cli/format/output.boki")
+            .expect("Could not read output file.");
 
         assert_eq!(formatted_str, rhs);
     }

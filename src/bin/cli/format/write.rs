@@ -1,6 +1,6 @@
 //! This module handles converting the formatter's AST into text that further be written to a file.
-use crate::format::_ast;
-use crate::tokens;
+use super::_ast;
+use boki::tokens;
 
 #[derive(Clone, Debug)]
 pub struct FormatContext {

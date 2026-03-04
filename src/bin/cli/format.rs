@@ -1,28 +1,131 @@
+use boki::parsing::TokenScanner;
+use boki::tokens;
+use boki::{lex, parsing};
 use std::io::Write;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 mod _ast;
 mod parse;
 mod write;
 
-pub struct Error(String);
+#[derive(Debug)]
+pub struct Error {
+    context: FormatContext,
+    error: String,
+}
 
 impl crate::error::CLIError for Error {
     fn format(&self) -> String {
-        self.0.clone()
+        let mut s = String::new();
+        let ctx = &self.context;
+        s += &format!(
+            "Error while formatting file: {}",
+            ctx.filename.as_os_str().to_str().unwrap()
+        );
+        if let Some(location) = ctx.location {
+            let (line, character) = boki::utils::get_position_in_content(
+                ctx.content.clone().unwrap().as_ref(),
+                location,
+            );
+            s += &format!(":{}:{}", line + 1, character + 1);
+        }
+        s += ":\n";
+        s += &self.error;
+        s
     }
 }
 
-impl From<FormatError> for Error {
-    fn from(value: FormatError) -> Self {
-        Self(format!("{}", value))
+#[derive(Clone, Debug)]
+struct FormatContext {
+    filename: std::sync::Arc<PathBuf>,
+    content: Option<std::sync::Arc<str>>,
+    location: Option<usize>,
+}
+
+impl FormatContext {
+    fn new(filename: PathBuf) -> Self {
+        Self {
+            filename: std::sync::Arc::from(filename),
+            content: None,
+            location: None,
+        }
+    }
+
+    fn map_display_error<E: std::fmt::Display>(&self, e: E) -> Error {
+        Error {
+            context: Self {
+                filename: self.filename.clone(),
+                content: self.content.clone(),
+                location: None,
+            },
+            error: format!("{e}"),
+        }
+    }
+
+    fn map_lexer_error(&self, e: lex::LexerError) -> Error {
+        Error {
+            context: Self {
+                filename: self.filename.clone(),
+                content: self.content.clone(),
+                location: Some(e.location),
+            },
+            error: format!("{e}"),
+        }
+    }
+
+    fn map_parser_error(&self, e: parsing::ParserError) -> Error {
+        Error {
+            context: Self {
+                filename: self.filename.clone(),
+                content: self.content.clone(),
+                location: Some(e.location),
+            },
+            error: format!("{e:#?}"),
+        }
     }
 }
 
-impl From<std::io::Error> for Error {
-    fn from(value: std::io::Error) -> Self {
-        Self(format!("{}", value))
-    }
+fn format_content(ctx: &mut FormatContext) -> Result<String, Error> {
+    let decoated_tokens = lex::lex_string(ctx.content.clone().unwrap().as_ref())
+        .map_err(|e| ctx.map_lexer_error(e))?;
+    let tokens: Vec<tokens::Token> = decoated_tokens
+        .iter()
+        .map(|dt| dt.token().clone())
+        .collect();
+    let nodes = parse::parse(&mut TokenScanner::from_slice(tokens.as_slice()))
+        .map_err(|e| ctx.map_parser_error(e))?;
+
+    let output = format!("{}", write::to_displayable(nodes.as_slice()));
+
+    Ok(output)
+}
+
+fn read_file(ctx: &mut FormatContext) -> Result<(), Error> {
+    let input =
+        std::fs::read_to_string(ctx.filename.as_ref()).map_err(|e| ctx.map_display_error(e))?;
+    ctx.content = Some(std::sync::Arc::from(input));
+
+    Ok(())
+}
+
+fn write_file(ctx: &mut FormatContext, output: &str) -> Result<(), Error> {
+    let mut f = std::fs::File::options()
+        .write(true)
+        .truncate(true)
+        .open(ctx.filename.as_ref())
+        .map_err(|e| ctx.map_display_error(e))?;
+    f.write_all(output.as_bytes())
+        .map_err(|e| ctx.map_display_error(e))?;
+
+    Ok(())
+}
+
+fn format_file(filename: &Path) -> Result<(), Error> {
+    let mut ctx = FormatContext::new(filename.to_path_buf());
+    read_file(&mut ctx)?;
+    let output = format_content(&mut ctx)?;
+    write_file(&mut ctx, &output)?;
+    Ok(())
 }
 
 #[derive(clap::Args)]
@@ -32,77 +135,23 @@ pub struct Args {
 
 pub fn run(args: &Args) -> Result<(), Error> {
     for file in &args.files {
-        let input = std::fs::read_to_string(file.clone())?;
-        let output = format_string(&input)?;
-        let mut f = std::fs::File::options()
-            .write(true)
-            .truncate(true)
-            .open(file)?;
-        f.write_all(output.as_bytes())?;
+        format_file(file)?;
     }
 
     Ok(())
 }
 
-use boki::parsing::TokenScanner;
-use boki::tokens;
-use boki::{lex, parsing};
-use std::io;
-
-#[derive(Clone, Debug)]
-pub enum FormatError {
-    General(String),
-}
-
-impl From<lex::LexerError> for FormatError {
-    fn from(value: lex::LexerError) -> Self {
-        Self::General(format!("{}", value))
-    }
-}
-
-impl From<io::Error> for FormatError {
-    fn from(value: io::Error) -> Self {
-        Self::General(value.to_string())
-    }
-}
-
-impl From<parsing::ParserError> for FormatError {
-    fn from(value: parsing::ParserError) -> Self {
-        Self::General(format!("{:#?}", value))
-    }
-}
-
-impl std::fmt::Display for FormatError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match &self {
-            Self::General(x) => {
-                write!(f, "{x}")?;
-            }
-        };
-
-        Ok(())
-    }
-}
-
-pub fn format_string(s: &str) -> Result<String, FormatError> {
-    let decoated_tokens = lex::lex_string(s)?;
-    let tokens: Vec<tokens::Token> = decoated_tokens
-        .iter()
-        .map(|dt| dt.token().clone())
-        .collect();
-    let nodes = parse::parse(&mut TokenScanner::from_slice(tokens.as_slice()))?;
-
-    let output = format!("{}", write::to_displayable(nodes.as_slice()));
-    Ok(output)
-}
-
 #[cfg(test)]
 mod test {
+    use std::path::PathBuf;
+
+    use crate::{cli::format::read_file, error::CLIErrorResult};
+
     #[test]
     fn test_smoke() {
-        let input_str = std::fs::read_to_string("src/bin/cli/format/input.boki")
-            .expect("Could not read input file.");
-        let formatted_str = super::format_string(&input_str).expect("Failed.");
+        let mut ctx = super::FormatContext::new(PathBuf::from("src/bin/cli/format/input.boki"));
+        read_file(&mut ctx).or_panic();
+        let formatted_str = super::format_content(&mut ctx).or_panic();
         let rhs = std::fs::read_to_string("src/bin/cli/format/output.boki")
             .expect("Could not read output file.");
 

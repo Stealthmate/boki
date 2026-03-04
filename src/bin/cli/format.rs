@@ -1,6 +1,6 @@
 use boki::parsing::TokenScanner;
-use boki::tokens;
 use boki::{lex, parsing};
+use boki::{tokens, utils};
 use std::io::Write;
 use std::path::{Path, PathBuf};
 
@@ -30,6 +30,15 @@ impl crate::error::CLIError for Error {
             s += &format!(":{}:{}", line + 1, character + 1);
         }
         s += ":\n";
+
+        if ctx.location.is_some() {
+            s += &utils::pretty_print_location(
+                ctx.content.clone().unwrap().as_ref(),
+                ctx.location.unwrap(),
+            );
+            s += "\n";
+        }
+
         s += &self.error;
         s
     }

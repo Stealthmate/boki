@@ -1,5 +1,3 @@
-use crate::utils;
-
 #[derive(Clone, Debug)]
 pub enum LexerErrorDetails {
     NothingMatched,
@@ -20,24 +18,20 @@ pub struct LexerError {
 
 impl std::fmt::Display for LexerError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Lexer Error: ")?;
         let msg = match &self.details {
             LexerErrorDetails::InternalError(_) => "Internal error.",
             LexerErrorDetails::NothingMatched => "Encountered invalid characters.",
         };
-
-        let pos = utils::get_position_in_content(&self.content, self.location);
-        writeln!(f, "Error at {}:{}", pos.0 + 1, pos.1 + 1)?;
-        writeln!(
-            f,
-            "{}",
-            utils::pretty_print_file_error(&self.content, self.location, msg)
-        )?;
-
-        writeln!(f, "Previous Tokens:")?;
-        for token in self.previous_tokens.iter().rev().take(10) {
+        writeln!(f, "{msg} Previous Tokens: [")?;
+        for token in self.previous_tokens.iter().rev().take(5) {
             // TODO: pretty print the tokens as well.
-            writeln!(f, "  {:#?}", token.token())?;
+            writeln!(f, "  {}", token.token())?;
         }
+        if self.previous_tokens.len() > 5 {
+            writeln!(f, "  ...")?;
+        }
+        writeln!(f, "]")?;
 
         Ok(())
     }

@@ -7,6 +7,14 @@ pub enum Keyword {
     Set,
 }
 
+impl std::fmt::Display for Keyword {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match &self {
+            Keyword::Set => write!(f, "set"),
+        }
+    }
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub enum Token {
     Keyword(Keyword),
@@ -55,6 +63,25 @@ impl Token {
             Token::Whitespace => TOKEN_NAME_WHITESPACE,
             Token::Indent => TOKEN_NAME_INDENT,
             Token::Eof => TOKEN_NAME_EOF,
+        }
+    }
+}
+
+impl std::fmt::Display for Token {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match &self {
+            Token::Keyword(kw) => write!(f, "Keyword({kw})"),
+            Token::Timestamp(ts) => write!(f, "Timestamp({ts})"),
+            Token::Amount(x) => write!(f, "Amount({x})"),
+            Token::Identifier(x) => write!(f, "Identifier({x})"),
+            Token::AccountSeparator => write!(f, "AccountSeparator"),
+            Token::PostingSeparator => write!(f, "PostingSeparator"),
+            Token::LineSeparator => write!(f, "LineSeparator"),
+            Token::Comment(x) => write!(f, "Comment({x})"),
+            Token::YamlMatter(_) => write!(f, "Yaml Matter"),
+            Token::Whitespace => write!(f, "Whitespace"),
+            Token::Indent => write!(f, "Indent"),
+            Token::Eof => write!(f, "Eof"),
         }
     }
 }

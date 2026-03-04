@@ -1,3 +1,5 @@
+//! Anything that isn't worth getting a dedicated module goes here.
+
 pub fn indent_string(s: &str) -> String {
     format!("  {}", s.replace("\n", "\n  "))
 }
@@ -55,6 +57,33 @@ pub fn pretty_print_file_error(content: &str, location: usize, message: &str) ->
     }
     the_lines.push("=============================".to_string());
     the_lines.push(message.to_string());
+
+    the_lines.join("\n")
+}
+
+pub fn pretty_print_location(content: &str, location: usize) -> String {
+    let (line_number, character_position) = get_position_in_content(content, location);
+
+    let offset = 5;
+    let all_lines: Vec<&str> = content.split("\n").collect();
+
+    let min_line = line_number.saturating_sub(offset);
+    let max_line = if line_number + offset <= all_lines.len() {
+        line_number + offset
+    } else {
+        all_lines.len()
+    };
+
+    let mut the_lines: Vec<String> = vec!["=============================".to_string()];
+    for (i, line) in all_lines[min_line..max_line].iter().enumerate() {
+        if i == line_number - min_line {
+            the_lines.push(format!("{: >10}|{line}", i + min_line + 1));
+            the_lines.extend(arrow_to(character_position));
+        } else {
+            the_lines.push(format!("{: >10}|{line}", i + min_line + 1));
+        }
+    }
+    the_lines.push("=============================".to_string());
 
     the_lines.join("\n")
 }

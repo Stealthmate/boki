@@ -4,6 +4,15 @@ pub trait CLIError {
     fn format(&self) -> String;
 }
 
+impl<E> CLIError for Box<E>
+where
+    E: CLIError,
+{
+    fn format(&self) -> String {
+        self.as_ref().format()
+    }
+}
+
 pub trait CLIErrorResult<T> {
     fn or_quit(self) -> T;
     #[allow(dead_code)]

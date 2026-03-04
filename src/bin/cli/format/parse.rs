@@ -43,6 +43,14 @@ fn parse_yaml(scanner: &mut parsing::TokenScanner) -> parsing::ParserResult<_ast
 }
 
 fn parse_misc(scanner: &mut parsing::TokenScanner) -> parsing::ParserResult<_ast::Node> {
+    let location = scanner.tell();
+    if parsing::parse_indent(scanner).is_ok() {
+        return Err(parsing::ParserError {
+            location,
+            details: parsing::ParserErrorDetails::Other("Not a misc line.".to_string()),
+        });
+    }
+    scanner.seek(location)?;
     parse_line(scanner).map(_ast::Node::Misc)
 }
 

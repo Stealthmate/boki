@@ -1,4 +1,5 @@
-use crate::parsing::core::{get_next, Parser, ParserError, ParserResult, TokenScanner};
+use crate::parsing::core::{get_next, Parser, ParserResult, TokenScanner};
+use crate::parsing::error;
 use crate::tokens;
 
 struct ManyParser<P> {
@@ -145,9 +146,9 @@ where
             }
         }
 
-        Err(ParserError {
+        Err(error::ParserError {
             location: i,
-            details: super::core::ParserErrorDetails::BranchingError(
+            details: error::ParserErrorDetails::BranchingError(
                 "All parsers failed.".to_string(),
                 errors,
             ),
@@ -207,7 +208,7 @@ where
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::parsing::core::{ParserError, ParserErrorDetails};
+    use crate::parsing::error::{ParserError, ParserErrorDetails};
     use crate::tokens;
 
     fn parse_fail(_: &mut TokenScanner) -> ParserResult<()> {

@@ -1,6 +1,7 @@
 use crate::tokens;
 
-use crate::parsing::core::{get_next, ParserError, ParserErrorDetails, ParserResult, TokenScanner};
+use crate::parsing::core::{get_next, ParserResult, TokenScanner};
+use crate::parsing::error;
 
 macro_rules! parse_token {
     ($name:ident, $return_type:ty, $tname:expr, $expansion:pat, $return_value:expr) => {
@@ -10,9 +11,9 @@ macro_rules! parse_token {
             match t {
                 $expansion => Ok($return_value),
                 _ => {
-                    return Err(ParserError {
+                    return Err(error::ParserError {
                         location: i,
-                        details: ParserErrorDetails::ExpectedSomethingElse(
+                        details: error::ParserErrorDetails::ExpectedSomethingElse(
                             $tname.to_string(),
                             t.clone(),
                         ),
@@ -99,9 +100,9 @@ pub fn parse_keyword(scanner: &mut TokenScanner, kw: tokens::Keyword) -> ParserR
     let t = get_next(scanner)?;
     match t {
         tokens::Token::Keyword(x) if *x == kw => Ok(()),
-        _ => Err(ParserError {
+        _ => Err(error::ParserError {
             location: i,
-            details: ParserErrorDetails::ExpectedSomethingElse(
+            details: error::ParserErrorDetails::ExpectedSomethingElse(
                 tokens::TOKEN_NAME_KEYWORD.to_string(),
                 t.clone(),
             ),

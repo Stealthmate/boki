@@ -1,6 +1,6 @@
-use crate::tokens::Keyword;
+use boki::tokens::Keyword;
 
-use crate::parsing::{self, TokenScanner};
+use boki::parsing::{self, TokenScanner};
 
 pub struct SetAttributeParser;
 
@@ -22,7 +22,7 @@ impl SetAttributeParser {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::tokens::{Keyword, Token};
+    use boki::tokens::{Keyword, Token};
 
     #[test]
     fn test_simple() {

@@ -101,9 +101,10 @@ impl TransactionCompiler {
             let (commodity, amount) =
                 unbalanced_commodity.unwrap_or((posting.commodity.clone(), 0));
             if posting.commodity != commodity {
-                return Err(CompilationError::from_string(
-                    "Empty posting commodity is different than unbalanced commodity.",
-                ));
+                return Err(CompilationError::from_string(&format!(
+                    "Empty posting commodity is different than unbalanced commodity.: {}:{}",
+                    posting.commodity, commodity
+                )));
             }
 
             posting.amount = -amount;

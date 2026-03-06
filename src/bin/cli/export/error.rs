@@ -1,4 +1,4 @@
-use boki::{lex, parsing, utils};
+use boki::{compile, lex, parsing, utils};
 use std::path::PathBuf;
 use std::rc::Rc;
 
@@ -7,6 +7,17 @@ pub struct FileLexError {
     pub filename: Rc<PathBuf>,
     pub content: Rc<str>,
     pub error: lex::LexerError,
+}
+
+pub fn map_lexer_error(
+    filename: Rc<PathBuf>,
+    content: Rc<str>,
+) -> impl FnOnce(lex::LexerError) -> FileLexError {
+    move |error| FileLexError {
+        filename,
+        content,
+        error,
+    }
 }
 
 impl std::fmt::Display for FileLexError {
@@ -40,6 +51,19 @@ pub struct FileParseError {
     pub error: parsing::ParserError,
 }
 
+pub fn map_parser_error(
+    filename: Rc<PathBuf>,
+    content: Rc<str>,
+    decorated_tokens: Rc<[lex::DecoratedToken]>,
+) -> impl FnOnce(parsing::ParserError) -> FileParseError {
+    move |error| FileParseError {
+        filename,
+        content,
+        decorated_tokens,
+        error,
+    }
+}
+
 impl std::fmt::Display for FileParseError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         writeln!(
@@ -70,6 +94,17 @@ impl std::fmt::Display for FileParseError {
 }
 
 #[derive(Debug)]
+pub struct FileCompileError {
+    error: compile::CompilationError,
+}
+
+impl std::fmt::Display for FileCompileError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        writeln!(f, "TODO: {:#?}", self.error)
+    }
+}
+
+#[derive(Debug)]
 pub enum Error {
     IO {
         filename: Rc<PathBuf>,
@@ -77,6 +112,7 @@ pub enum Error {
     },
     Lexer(FileLexError),
     Parser(FileParseError),
+    Compiler(FileCompileError),
 }
 
 impl From<FileLexError> for Box<Error> {
@@ -99,4 +135,16 @@ impl crate::error::CLIError for Error {
             _ => todo!(),
         }
     }
+}
+
+pub fn map_io_error(filename: Rc<PathBuf>) -> impl FnOnce(std::io::Error) -> Box<Error> {
+    move |error| Box::new(Error::IO { filename, error })
+}
+
+pub fn map_compile_error() -> impl FnOnce(compile::CompilationError) -> Box<Error> {
+    |error| Box::new(Error::Compiler(FileCompileError { error }))
+}
+
+pub fn map_serde_error() -> impl FnOnce(serde_json::Error) -> Box<Error> {
+    |_| todo!()
 }

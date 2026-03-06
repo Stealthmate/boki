@@ -1,6 +1,6 @@
-use crate::ast;
+use boki::ast;
 
-use crate::parsing::{self, Parser, ParserError};
+use boki::parsing::{self, Parser, ParserError};
 
 pub struct TransactionParser;
 
@@ -86,8 +86,8 @@ impl TransactionParser {
 #[cfg(test)]
 mod test {
     use super::TransactionParser;
-    use crate::lexparse::parse::parsing::TokenScanner;
-    use crate::tokens::{Timestamp, Token};
+    use boki::parsing::TokenScanner;
+    use boki::tokens::{Timestamp, Token};
 
     fn sample_timestamp() -> Timestamp {
         Timestamp::parse_from_rfc3339("2026-01-02T03:04:05.000+09:00").unwrap()
@@ -193,12 +193,12 @@ mod test {
             Token::Amount(1000),
             Token::LineSeparator,
         ]);
-        let result = TransactionParser::parse(&mut scanner).expect("Failed.");
+        TransactionParser::parse(&mut scanner).expect("Failed.");
     }
 
     #[test]
     fn test_invalid_posting() {
-        use crate::lexparse::parse::parsing::ParserErrorDetails;
+        use boki::parsing::ParserErrorDetails;
 
         let ts = sample_timestamp();
         let mut scanner = TokenScanner::from_slice(&[

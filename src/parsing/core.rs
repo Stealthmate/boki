@@ -1,26 +1,7 @@
+use super::error;
 use crate::tokens;
 
-#[derive(Debug)]
-pub enum ParserErrorDetails {
-    BranchingError(String, Vec<ParserError>),
-    Nested(String, Box<ParserError>),
-    ExpectedSomethingElse(String, tokens::Token),
-    IllegalImplementation(String),
-    /// We consumed all tokens without seeing an EOF token.
-    Incomplete,
-    Other(String),
-}
-
-/// The main error type for the parser stage.
-#[derive(Debug)]
-pub struct ParserError {
-    /// The location of the token at which the error occurred.
-    pub location: usize,
-    /// Details about the exact error.
-    pub details: ParserErrorDetails,
-}
-
-pub type ParserResult<T> = Result<T, ParserError>;
+pub type ParserResult<T> = Result<T, error::ParserError>;
 
 pub struct TokenScanner {
     tokens: Vec<tokens::Token>,
@@ -43,9 +24,9 @@ impl TokenScanner {
         self.offset + self.location
     }
     pub fn seek(&mut self, i: usize) -> ParserResult<()> {
-        let mkerr = |x: String| ParserError {
+        let mkerr = |x: String| error::ParserError {
             location: self.location,
-            details: ParserErrorDetails::IllegalImplementation(x),
+            details: error::ParserErrorDetails::IllegalImplementation(x),
         };
         if i < self.offset {
             return Err(mkerr(format!(
@@ -79,9 +60,9 @@ impl TokenScanner {
 
 pub fn peek_next(scanner: &TokenScanner) -> ParserResult<&tokens::Token> {
     match scanner.peek() {
-        None => Err(ParserError {
+        None => Err(error::ParserError {
             location: scanner.tell(),
-            details: ParserErrorDetails::Incomplete,
+            details: error::ParserErrorDetails::Incomplete,
         }),
         Some(t) => Ok(t),
     }
@@ -90,9 +71,9 @@ pub fn peek_next(scanner: &TokenScanner) -> ParserResult<&tokens::Token> {
 pub fn get_next(scanner: &mut TokenScanner) -> ParserResult<&tokens::Token> {
     let location = scanner.tell();
     match scanner.next() {
-        None => Err(ParserError {
+        None => Err(error::ParserError {
             location,
-            details: ParserErrorDetails::Incomplete,
+            details: error::ParserErrorDetails::Incomplete,
         }),
         Some(t) => Ok(t),
     }

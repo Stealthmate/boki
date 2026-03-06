@@ -1,10 +1,10 @@
 mod basic;
 mod combinators;
 mod core;
+mod error;
 
-pub use core::{
-    get_next, peek_next, Parser, ParserError, ParserErrorDetails, ParserResult, TokenScanner,
-};
+pub use core::{get_next, peek_next, Parser, ParserResult, TokenScanner};
+pub use error::{ParserError, ParserErrorDetails};
 
 pub use combinators::{many, one_of, optional, preceded, take_until, terminated};
 

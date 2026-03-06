@@ -7,11 +7,12 @@ use nom::Parser;
 
 const ALPHA: &str = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJQKLMNOPQRSTUVWXYZ";
 const NUMBERS: &str = "0123456789";
-const SYMBOLS: &str = "-_:";
+const NON_FIRST_SYMBOLS: &str = "-";
+const OTHER_SYMBOLS: &str = "_:";
 
 pub fn lex(input: StringScanner) -> NomResult<Token> {
-    let first: String = String::new() + ALPHA + SYMBOLS;
-    let rest: String = String::new() + ALPHA + NUMBERS + SYMBOLS;
+    let first: String = String::new() + ALPHA + OTHER_SYMBOLS;
+    let rest: String = String::new() + ALPHA + NUMBERS + NON_FIRST_SYMBOLS + OTHER_SYMBOLS;
 
     let (input, x) =
         recognize(pair(is_a(first.as_str()), opt(is_a(rest.as_str())))).parse(input)?;
@@ -36,6 +37,7 @@ mod test {
 
     #[rstest::rstest]
     #[case::numeric_prefix("1asfasf")]
+    #[case::dash_prefix("-1asfasf")]
     fn test_identifier_fails(#[case] input: &str) {
         super::lex(input.into()).expect_err("Failed.");
     }

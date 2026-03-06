@@ -9,6 +9,7 @@
 //! 3. Public modules must be used directly either by the binary, or by two or more other public modules.
 
 pub mod ast;
+pub mod common_errors;
 pub mod compile;
 pub mod lex;
 pub mod output;

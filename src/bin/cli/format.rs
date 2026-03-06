@@ -1,3 +1,4 @@
+use boki::common_errors::{FileLexError, FileParseError};
 use boki::lex;
 use boki::lex::DecoratedToken;
 use boki::parsing::TokenScanner;
@@ -21,7 +22,10 @@ fn read_file(filename: Rc<PathBuf>) -> Result<Rc<str>> {
 
 fn format_content(filename: Rc<PathBuf>, content: Rc<str>) -> Result<String> {
     let decorated_tokens: Rc<[DecoratedToken]> = lex::lex_string(content.as_ref())
-        .map_err(error::map_lexer_error(filename.clone(), content.clone()))?
+        .map_err(FileLexError::map_from_lexer_error(
+            filename.clone(),
+            content.clone(),
+        ))?
         .into();
 
     let tokens: Vec<tokens::Token> = decorated_tokens
@@ -30,7 +34,7 @@ fn format_content(filename: Rc<PathBuf>, content: Rc<str>) -> Result<String> {
         .collect();
 
     let nodes = parse::parse(&mut TokenScanner::from_slice(tokens.as_slice())).map_err(
-        error::map_parser_error(filename.clone(), content.clone(), decorated_tokens),
+        FileParseError::map_from_parser_error(filename.clone(), content.clone(), decorated_tokens),
     )?;
 
     let output = format!("{}", write::to_displayable(nodes.as_slice()));

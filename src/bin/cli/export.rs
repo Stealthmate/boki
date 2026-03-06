@@ -1,3 +1,4 @@
+use boki::common_errors::{FileLexError, FileParseError};
 use std::path::PathBuf;
 use std::rc::Rc;
 
@@ -18,17 +19,21 @@ fn compile_file(filename: Rc<PathBuf>) -> Result<output::Journal> {
     let content = read_file(filename.clone())?;
 
     let decorated_tokens: Rc<[lex::DecoratedToken]> = lex::lex_string(content.as_ref())
-        .map_err(error::map_lexer_error(filename.clone(), content.clone()))?
+        .map_err(FileLexError::map_from_lexer_error(
+            filename.clone(),
+            content.clone(),
+        ))?
         .into();
-    let nodes = parse::parse_tokens(decorated_tokens.clone()).map_err(error::map_parser_error(
-        filename.clone(),
-        content.clone(),
-        decorated_tokens.clone(),
-    ))?;
+    let nodes = parse::parse_tokens(decorated_tokens.clone()).map_err(
+        FileParseError::map_from_parser_error(
+            filename.clone(),
+            content.clone(),
+            decorated_tokens.clone(),
+        ),
+    )?;
 
     let mut journal = output::Journal::default();
     for node in nodes {
-        println!("Node:\n{node:#?}");
         compile::compile_node(&node, &mut journal).map_err(error::map_compile_error())?;
     }
 

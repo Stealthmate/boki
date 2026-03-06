@@ -7,32 +7,8 @@ mod error;
 
 use error::CLIErrorResult;
 
-// #[derive(Debug)]
-// struct CLIError(String);
-
-// impl std::fmt::Display for CLIError {
-//     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-//         writeln!(f, "{}", self.0)
-//     }
-// }
-
-// impl From<Box<boki::evaluate::EvaluateError>> for CLIError {
-//     fn from(value: Box<boki::evaluate::EvaluateError>) -> Self {
-//         Self(format!("{}", *value))
-//     }
-// }
-
-// impl From<boki::format::FormatError> for CLIError {
-//     fn from(value: boki::format::FormatError) -> Self {
-//         Self(format!("{}", value))
-//     }
-// }
-
-// type CLIResult<T> = Result<T, CLIError>;
-
 #[derive(Subcommand)]
 enum Commands {
-    /// does testing things
     Export {
         #[arg(short, long, value_name = "FILE")]
         file: PathBuf,

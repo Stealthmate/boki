@@ -20,41 +20,49 @@ mod set_attributes;
 mod transaction;
 
 fn fold_tokens(
-    mut a: Vec<lex::DecoratedToken>,
-    t: lex::DecoratedToken,
-) -> Vec<lex::DecoratedToken> {
-    let Some(last) = a.last() else {
-        a.push(t);
-        return a;
+    a: (Vec<usize>, Vec<lex::DecoratedToken>),
+    x: (usize, lex::DecoratedToken),
+) -> (Vec<usize>, Vec<lex::DecoratedToken>) {
+    let (mut token_map, mut tokens) = a;
+    let (i, t) = x;
+
+    let Some(last) = tokens.last() else {
+        tokens.push(t);
+        token_map.push(i);
+        return (token_map, tokens);
     };
 
     match (last.token().name(), t.token().name()) {
         // we skip comments
-        (_, tokens::TOKEN_NAME_COMMENT) => a,
+        (_, tokens::TOKEN_NAME_COMMENT) => {}
         // we skip whitespace
-        (_, tokens::TOKEN_NAME_WHITESPACE) => a,
+        (_, tokens::TOKEN_NAME_WHITESPACE) => {}
         // consecutive newlines are combined into one
-        (tokens::TOKEN_NAME_LINE_SEPARATOR, tokens::TOKEN_NAME_LINE_SEPARATOR) => a,
+        (tokens::TOKEN_NAME_LINE_SEPARATOR, tokens::TOKEN_NAME_LINE_SEPARATOR) => {}
         // indent followed by newline is considered as a single newline
         (tokens::TOKEN_NAME_INDENT, tokens::TOKEN_NAME_LINE_SEPARATOR) => {
-            let mut i = a.pop().unwrap().location();
-            // The second-to-last token could be a newline. In that case, we pop that as well.
-            if a.last()
-                .map(|t| matches!(t.token(), tokens::Token::LineSeparator))
-                .unwrap_or(false)
-            {
-                i = a.pop().unwrap().location();
-            }
+            tokens.pop();
+            token_map.pop();
 
-            // Finally we put a newline at the end.
-            a.push(lex::DecoratedToken::new(tokens::Token::LineSeparator, i));
-            a
+            // The second-to-last token could be a newline. In that case, we pop that as well.
+            let (t, i) = match tokens.last() {
+                Some(t) if matches!(t.token(), tokens::Token::LineSeparator) => {
+                    (tokens.pop().unwrap(), token_map.pop().unwrap())
+                }
+                Some(_) => (t, i),
+                None => (t, i),
+            };
+
+            tokens.push(t);
+            token_map.push(i);
         }
         _ => {
-            a.push(t);
-            a
+            tokens.push(t);
+            token_map.push(i);
         }
     }
+
+    (token_map, tokens)
 }
 
 fn parse_initial_whitespace_and_comments(
@@ -102,24 +110,51 @@ fn parse_node(scanner: &mut parsing::TokenScanner) -> parsing::ParserResult<ast:
     Ok(node)
 }
 
+fn rewrite_locations(token_map: Rc<[usize]>, error: &mut parsing::ParserError) {
+    error.location = *token_map
+        .as_ref()
+        .get(error.location)
+        .expect("This should never happen.");
+
+    match &mut error.details {
+        parsing::ParserErrorDetails::BranchingError(_, errs) => {
+            for err in errs {
+                rewrite_locations(token_map.clone(), err);
+            }
+        }
+        parsing::ParserErrorDetails::Nested(_, err) => {
+            rewrite_locations(token_map.clone(), err);
+        }
+        _ => {}
+    };
+}
+
 pub fn parse_tokens(tokens: Rc<[lex::DecoratedToken]>) -> parsing::ParserResult<Vec<ast::ASTNode>> {
-    let raw_tokens: Vec<tokens::Token> = tokens
+    let (token_map, folded_tokens) = tokens
         .iter()
         .cloned()
-        .fold(vec![], fold_tokens)
-        .iter()
-        .map(|x| x.token().clone())
-        .collect();
+        .enumerate()
+        .fold((vec![], vec![]), fold_tokens);
+
+    let token_map: Rc<[usize]> = Rc::from(token_map.as_ref());
+
+    let raw_tokens: Vec<tokens::Token> = folded_tokens.iter().map(|x| x.token().clone()).collect();
     let mut scanner = parsing::TokenScanner::from_slice(&raw_tokens);
     let mut nodes: Vec<ast::ASTNode> = vec![];
 
-    parse_initial_whitespace_and_comments(&mut scanner)?;
+    parse_initial_whitespace_and_comments(&mut scanner).map_err(|mut e| {
+        rewrite_locations(token_map.clone(), &mut e);
+        e
+    })?;
 
     loop {
         if let Some(tokens::Token::Eof) = scanner.peek() {
             break;
         }
-        let node = parse_node(&mut scanner)?;
+        let node = parse_node(&mut scanner).map_err(|mut e| {
+            rewrite_locations(token_map.clone(), &mut e);
+            e
+        })?;
         nodes.push(node);
     }
 

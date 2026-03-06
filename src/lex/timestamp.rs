@@ -26,13 +26,21 @@ fn lex_datetime(input: StringScanner) -> NomResult<Timestamp> {
 }
 
 fn lex_date(input: StringScanner) -> NomResult<NaiveDate> {
-    let (input, datestr) = take(10usize).parse(input)?;
+    let (input, datestr_part) = take(10usize).parse(input)?;
 
-    let date = match NaiveDate::parse_from_str(datestr.as_str(), "%Y-%m-%d") {
+    let datestr = datestr_part.as_str().trim();
+    if datestr.len() != 10 {
+        return Err(nom::Err::Error(nom::error::make_error(
+            datestr_part,
+            nom::error::ErrorKind::IsNot,
+        )));
+    }
+
+    let date = match NaiveDate::parse_from_str(datestr, "%Y-%m-%d") {
         Ok(x) => x,
         Err(_) => {
             return Err(nom::Err::Error(nom::error::make_error(
-                datestr,
+                datestr_part,
                 nom::error::ErrorKind::IsNot,
             )))
         }
@@ -70,5 +78,11 @@ mod test {
             result,
             Token::Timestamp(DateTime::parse_from_rfc3339(timestamp).expect("Invalid test case."))
         )
+    }
+
+    #[rstest::rstest]
+    #[case::preceding_newline("\n2026-01-01")]
+    fn test_fails(#[case] input: &str) {
+        lex(input.into()).expect_err("Should have failed.");
     }
 }

@@ -30,7 +30,7 @@ impl std::fmt::Display for FileLexError {
 
         writeln!(
             f,
-            "while formatting file: {}:{}:{}:",
+            "while lexing file: {}:{}:{}:",
             self.filename.as_os_str().to_str().unwrap(),
             line + 1,
             character + 1
